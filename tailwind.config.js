@@ -10,8 +10,8 @@ export default {
       colors: {
         // Sleek Telegram-like branding
         tg: {
-          blue: '#24A1DE',
-          darkBlue: '#179cde',
+          blue: 'var(--tg-blue, #24A1DE)',
+          darkBlue: 'var(--tg-darkBlue, #1d82b3)',
           lightBlue: '#50b5ff',
           bgDark: 'var(--bg-app)',
           bgSidebarDark: 'var(--bg-sidebar)',

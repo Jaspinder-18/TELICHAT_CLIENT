@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api.js';
 import { setAlert } from '../../redux/uiSlice.js';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import DateRangeIcon from '@mui/icons-material/DateRange';
 import LockResetIcon from '@mui/icons-material/LockReset';
 
@@ -90,163 +90,199 @@ export const ForgotPassword = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-tg-bgDark p-4 relative overflow-hidden tg-chat-bg">
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-tg-blue opacity-10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-600 opacity-10 blur-[120px] rounded-full pointer-events-none" />
+      {/* Decorative premium blurs */}
+      <div className="absolute top-[-25%] left-[-15%] w-[600px] h-[600px] bg-tg-blue/15 blur-[150px] rounded-full pointer-events-none animate-pulse" />
+      <div className="absolute bottom-[-25%] right-[-15%] w-[600px] h-[600px] bg-purple-600/15 blur-[150px] rounded-full pointer-events-none animate-pulse" style={{ animationDuration: '6s' }} />
 
-      <div className="w-[92%] sm:w-full max-w-md bg-tg-bgSidebarDark/90 backdrop-blur-xl border border-tg-borderDark rounded-2xl shadow-2xl p-6 sm:p-8 relative z-10 animate-slide-in">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="w-[92%] sm:w-full max-w-md bg-tg-bgSidebarDark/65 backdrop-blur-2xl border border-tg-borderDark/45 rounded-3xl shadow-2xl p-6 sm:p-9 relative z-10"
+      >
         <Link
           to="/login"
-          className="inline-flex items-center text-xs text-tg-textMuted hover:text-tg-textDefault mb-6 transition"
+          className="inline-flex items-center text-xs font-semibold text-tg-textMuted hover:text-tg-textDefault mb-6 transition hover:underline"
         >
-          <ArrowBackIcon fontSize="inherit" className="mr-1" /> Back to Sign In
+          <ArrowBackIcon fontSize="inherit" className="mr-1.5" style={{ fontSize: '12px' }} /> Back to Sign In
         </Link>
 
         {localError && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-lg mb-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3.5 rounded-2xl mb-6 text-center font-medium"
+          >
             {localError}
-          </div>
+          </motion.div>
         )}
 
-        {step === 1 && (
-          <div>
-            <div className="flex flex-col items-center mb-8">
-              <div className="w-14 h-14 bg-tg-blue/10 rounded-full flex items-center justify-center text-tg-blue mb-4 border border-tg-blue/20">
-                <MailOutlineIcon fontSize="large" />
-              </div>
-              <h2 className="text-xl font-bold text-tg-textDefault tracking-tight">Forgot Password</h2>
-              <p className="text-xs text-tg-textMuted mt-1 text-center">
-                Enter your registered corporate email to receive a password reset verification code.
-              </p>
-            </div>
-
-            <form onSubmit={handleSendOTP} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-semibold text-tg-textMuted mb-1 uppercase tracking-wider">
-                  Corporate Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="name@company.com"
-                  className="w-full px-4 py-2.5 bg-tg-bgDark border border-tg-borderDark rounded-xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-sm"
-                />
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.div
+              key="step1"
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 15 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex flex-col items-center mb-8">
+                <div className="w-16 h-16 bg-gradient-to-tr from-tg-blue/15 to-tg-blue/30 rounded-2xl flex items-center justify-center text-tg-blue mb-4 border border-tg-blue/30 shadow-inner">
+                  <MailOutlineIcon fontSize="medium" />
+                </div>
+                <h2 className="text-2xl font-bold text-tg-textDefault tracking-tight">Forgot Password</h2>
+                <p className="text-xs text-tg-textMuted mt-2 text-center leading-relaxed font-medium">
+                  Enter your registered corporate email to receive a password reset verification code.
+                </p>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-tg-blue hover:bg-tg-darkBlue text-white rounded-xl font-semibold text-sm transition"
-              >
-                {loading ? 'Sending OTP...' : 'Send OTP Verification'}
-              </button>
-            </form>
-          </div>
-        )}
+              <form onSubmit={handleSendOTP} className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold text-tg-textMuted uppercase tracking-wider ml-1">
+                    Corporate Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="name@company.com"
+                    className="w-full px-4 py-3 bg-tg-bgDark/80 border border-tg-borderDark rounded-2xl focus:border-tg-blue focus:ring-1 focus:ring-tg-blue/30 focus:outline-none text-tg-textDefault text-sm placeholder-tg-textMuted/60 transition-all shadow-inner"
+                  />
+                </div>
 
-        {step === 2 && (
-          <div>
-            <div className="flex flex-col items-center mb-8">
-              <div className="w-14 h-14 bg-tg-blue/10 rounded-full flex items-center justify-center text-tg-blue mb-4 border border-tg-blue/20">
-                <DateRangeIcon fontSize="large" />
-              </div>
-              <h2 className="text-xl font-bold text-tg-textDefault tracking-tight">Verify Identity</h2>
-              <p className="text-xs text-tg-textMuted mt-1 text-center">
-                Verify OTP code and your registered date of birth for authentication.
-              </p>
-            </div>
+                <motion.button
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 bg-gradient-to-r from-tg-blue to-tg-darkBlue hover:brightness-110 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-tg-blue/15 disabled:opacity-50 disabled:pointer-events-none mt-2 cursor-pointer"
+                >
+                  {loading ? 'Sending OTP...' : 'Send OTP Verification'}
+                </motion.button>
+              </form>
+            </motion.div>
+          )}
 
-            <form onSubmit={handleVerifyOtpAndDob} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-semibold text-tg-textMuted mb-1 uppercase tracking-wider">
-                  OTP Code
-                </label>
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  required
-                  maxLength={6}
-                  placeholder="e.g. 128492"
-                  className="w-full text-center px-4 py-2.5 bg-tg-bgDark border border-tg-borderDark rounded-xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-sm font-bold tracking-wider"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-tg-textMuted mb-1 uppercase tracking-wider">
-                  Date of Birth
-                </label>
-                <input
-                  type="date"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  required
-                  className="w-full px-4 py-2.5 bg-tg-bgDark border border-tg-borderDark rounded-xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-sm"
-                />
+          {step === 2 && (
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 15 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex flex-col items-center mb-8">
+                <div className="w-16 h-16 bg-gradient-to-tr from-tg-blue/15 to-tg-blue/30 rounded-2xl flex items-center justify-center text-tg-blue mb-4 border border-tg-blue/30 shadow-inner">
+                  <DateRangeIcon fontSize="medium" />
+                </div>
+                <h2 className="text-2xl font-bold text-tg-textDefault tracking-tight">Verify Identity</h2>
+                <p className="text-xs text-tg-textMuted mt-2 text-center leading-relaxed font-medium">
+                  Verify OTP code and your registered date of birth for authentication.
+                </p>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-tg-blue hover:bg-tg-darkBlue text-white rounded-xl font-semibold text-sm transition"
-              >
-                {loading ? 'Verifying...' : 'Verify Details'}
-              </button>
-            </form>
-          </div>
-        )}
+              <form onSubmit={handleVerifyOtpAndDob} className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold text-tg-textMuted uppercase tracking-wider ml-1">
+                    OTP Code
+                  </label>
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    required
+                    maxLength={6}
+                    placeholder="e.g. 128492"
+                    className="w-full text-center px-4 py-3 bg-tg-bgDark/80 border border-tg-borderDark rounded-2xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-sm font-bold tracking-wider shadow-inner"
+                  />
+                </div>
 
-        {step === 3 && (
-          <div>
-            <div className="flex flex-col items-center mb-8">
-              <div className="w-14 h-14 bg-tg-blue/10 rounded-full flex items-center justify-center text-tg-blue mb-4 border border-tg-blue/20">
-                <LockResetIcon fontSize="large" />
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold text-tg-textMuted uppercase tracking-wider ml-1">
+                    Date of Birth
+                  </label>
+                  <input
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-tg-bgDark/80 border border-tg-borderDark rounded-2xl focus:border-tg-blue focus:ring-1 focus:ring-tg-blue/30 focus:outline-none text-tg-textDefault text-sm transition-all shadow-inner"
+                  />
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 bg-gradient-to-r from-tg-blue to-tg-darkBlue hover:brightness-110 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-tg-blue/15 disabled:opacity-50 disabled:pointer-events-none mt-2 cursor-pointer"
+                >
+                  {loading ? 'Verifying...' : 'Verify Details'}
+                </motion.button>
+              </form>
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div
+              key="step3"
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 15 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex flex-col items-center mb-8">
+                <div className="w-16 h-16 bg-gradient-to-tr from-tg-blue/15 to-tg-blue/30 rounded-2xl flex items-center justify-center text-tg-blue mb-4 border border-tg-blue/30 shadow-inner">
+                  <LockResetIcon fontSize="medium" />
+                </div>
+                <h2 className="text-2xl font-bold text-tg-textDefault tracking-tight">Set New Password</h2>
+                <p className="text-xs text-tg-textMuted mt-2 text-center leading-relaxed font-medium">Please enter your new password below.</p>
               </div>
-              <h2 className="text-xl font-bold text-tg-textDefault tracking-tight">Set New Password</h2>
-              <p className="text-xs text-tg-textMuted mt-1">Please enter your new password below.</p>
-            </div>
 
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-semibold text-tg-textMuted mb-1 uppercase tracking-wider">
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full px-4 py-2.5 bg-tg-bgDark border border-tg-borderDark rounded-xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-sm"
-                />
-              </div>
+              <form onSubmit={handleResetPassword} className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold text-tg-textMuted uppercase tracking-wider ml-1">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 bg-tg-bgDark/80 border border-tg-borderDark rounded-2xl focus:border-tg-blue focus:ring-1 focus:ring-tg-blue/30 focus:outline-none text-tg-textDefault text-sm placeholder-tg-textMuted/60 transition-all shadow-inner"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-tg-textMuted mb-1 uppercase tracking-wider">
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full px-4 py-2.5 bg-tg-bgDark border border-tg-borderDark rounded-xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-sm"
-                />
-              </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold text-tg-textMuted uppercase tracking-wider ml-1">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 bg-tg-bgDark/80 border border-tg-borderDark rounded-2xl focus:border-tg-blue focus:ring-1 focus:ring-tg-blue/30 focus:outline-none text-tg-textDefault text-sm placeholder-tg-textMuted/60 transition-all shadow-inner"
+                  />
+                </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-tg-blue to-tg-darkBlue hover:brightness-110 active:scale-[0.98] text-white rounded-xl font-semibold text-sm transition shadow-lg shadow-tg-blue/20"
-              >
-                {loading ? 'Updating Password...' : 'Reset Password'}
-              </button>
-            </form>
-          </div>
-        )}
-      </div>
+                <motion.button
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 bg-gradient-to-r from-tg-blue to-tg-darkBlue hover:brightness-110 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-tg-blue/15 disabled:opacity-50 disabled:pointer-events-none mt-2 cursor-pointer"
+                >
+                  {loading ? 'Updating Password...' : 'Reset Password'}
+                </motion.button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 };

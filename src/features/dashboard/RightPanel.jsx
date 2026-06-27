@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { motion, AnimatePresence } from 'framer-motion';
 import { setRightSidebarOpen, setAlert } from '../../redux/uiSlice.js';
 import { updateGroup, updateChannel } from '../../redux/chatSlice.js';
 import api, { getFileUrl } from '../../services/api.js';
@@ -52,7 +53,7 @@ export const RightPanel = () => {
     }
   }, [activeChat, activeChatType]);
 
-  // Derive shared files from Redux messages list locally for real-time reactivity and accuracy
+  // Derive shared files from Redux messages list
   useEffect(() => {
     if (!activeChat) return;
 
@@ -101,6 +102,14 @@ export const RightPanel = () => {
     } catch (err) {
       console.error(err);
       dispatch(setAlert({ message: err.response?.data?.message || 'Failed to update group', severity: 'error' }));
+    }
+  };
+
+  const handleGroupAvatarUpload = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setGroupAvatarFile(file);
+      setGroupAvatarPreview(URL.createObjectURL(file));
     }
   };
 
@@ -175,627 +184,443 @@ export const RightPanel = () => {
   const imagesOnly = sharedFiles.filter(f => f.mimeType?.startsWith('image/'));
   const docsOnly = sharedFiles.filter(f => !f.mimeType?.startsWith('image/'));
 
+  // Group Admin checks
+  const isGroupAdmin = activeChatType === 'group' && activeChat.members.some(m => m.user._id === user.id && (m.role === 'admin' || m.role === 'owner'));
+  const isGroupOwner = activeChatType === 'group' && activeChat.members.some(m => m.user._id === user.id && m.role === 'owner');
+  const isChannelCreator = activeChatType === 'channel' && activeChat.creator === user.id;
+
+  // Filters for member search
+  const filteredGroupMembers = activeChatType === 'group' ? activeChat.members.filter(m => 
+    `${m.user.firstName || ''} ${m.user.lastName || ''} ${m.user.username}`.toLowerCase().includes(memberSearchQuery.toLowerCase())
+  ) : [];
+
+  const filteredChannelSubscribers = activeChatType === 'channel' ? activeChat.subscribers.filter(s => 
+    `${s.firstName || ''} ${s.lastName || ''} ${s.username}`.toLowerCase().includes(memberSearchQuery.toLowerCase())
+  ) : [];
+
+  // Contacts available to add (not in group/channel yet)
+  const addableContacts = contacts.filter(c => {
+    if (activeChatType === 'group') {
+      return !activeChat.members.some(m => m.user._id === c._id) && 
+        `${c.firstName || ''} ${c.lastName || ''} ${c.username}`.toLowerCase().includes(contactSearchQuery.toLowerCase());
+    } else if (activeChatType === 'channel') {
+      return !activeChat.subscribers.some(s => s._id === c._id) && 
+        `${c.firstName || ''} ${c.lastName || ''} ${c.username}`.toLowerCase().includes(contactSearchQuery.toLowerCase());
+    }
+    return false;
+  });
+
+  const tabItems = [
+    { id: 'profile', label: 'Profile' },
+    { id: 'files', label: `Files (${docsOnly.length})` },
+    { id: 'media', label: `Media (${imagesOnly.length})` }
+  ];
+
   return (
-    <div className="w-full sm:w-[300px] h-full bg-tg-bgSidebarDark border-l border-tg-borderDark flex flex-col z-30 flex-shrink-0 animate-slide-in shadow-2xl">
+    <div className="w-full sm:w-[320px] h-full bg-tg-bgSidebarDark border-l border-tg-borderDark flex flex-col z-30 flex-shrink-0 animate-slide-in shadow-2xl relative">
       {/* Header */}
-      <div className="h-[60px] border-b border-tg-borderDark flex items-center justify-between px-4">
+      <div className="h-[60px] border-b border-tg-borderDark flex items-center justify-between px-4 flex-shrink-0">
         <h4 className="text-xs font-bold text-tg-textDefault uppercase tracking-wider">Info Details</h4>
         <button
           onClick={() => dispatch(setRightSidebarOpen(false))}
-          className="p-1 rounded-lg text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition"
+          className="p-1.5 rounded-xl text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition cursor-pointer"
         >
           <CloseIcon fontSize="small" />
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-tg-borderDark text-[10px] uppercase font-bold text-center">
-        <button
-          onClick={() => setActiveTab('profile')}
-          className={`flex-1 py-3 transition border-b-2 ${activeTab === 'profile' ? 'border-tg-blue text-tg-blue' : 'border-transparent text-tg-textMuted hover:text-tg-textDefault'}`}
-        >
-          Profile
-        </button>
-        <button
-          onClick={() => setActiveTab('files')}
-          className={`flex-1 py-3 transition border-b-2 ${activeTab === 'files' ? 'border-tg-blue text-tg-blue' : 'border-transparent text-tg-textMuted hover:text-tg-textDefault'}`}
-        >
-          Files ({docsOnly.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('media')}
-          className={`flex-1 py-3 transition border-b-2 ${activeTab === 'media' ? 'border-tg-blue text-tg-blue' : 'border-transparent text-tg-textMuted hover:text-tg-textDefault'}`}
-        >
-          Media ({imagesOnly.length})
-        </button>
+      <div className="flex border-b border-tg-borderDark text-[10px] uppercase font-bold text-center flex-shrink-0 relative">
+        {tabItems.map(tab => {
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 py-3 transition relative ${active ? 'text-tg-blue' : 'text-tg-textMuted hover:text-tg-textDefault'}`}
+            >
+              {tab.label}
+              {active && (
+                <motion.div
+                  layoutId="rightPanelTabIndicator"
+                  className="absolute bottom-0 inset-x-0 h-0.5 bg-tg-blue"
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Viewport content */}
-      <div className="flex-grow overflow-y-auto p-5 text-left">
-        {activeTab === 'profile' && (
-          <div className="space-y-6">
-            {/* Avatar Display */}
-            <div className="flex flex-col items-center">
-              <div className="w-20 h-20 rounded-2xl bg-tg-blue/10 border border-tg-blue/20 overflow-hidden flex items-center justify-center text-tg-blue font-bold text-2xl mb-3 shadow-md">
-                {activeChat.profilePhoto || activeChat.avatar ? (
-                  <img src={getFileUrl(activeChat.profilePhoto || activeChat.avatar)} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span>{(activeChat.firstName || activeChat.name || activeChat.username || '?')[0].toUpperCase()}</span>
-                )}
-              </div>
-              <h3 className="text-sm font-bold text-tg-textDefault">
-                {activeChatType === 'user' 
-                  ? (activeChat.firstName || activeChat.lastName ? `${activeChat.firstName || ''} ${activeChat.lastName || ''}`.trim() : `@${activeChat.username}`)
-                  : activeChat.name}
-              </h3>
-              <p className="text-[10px] text-tg-textMuted mt-1">
-                {activeChatType === 'user' ? `@${activeChat.username}` : 'Corporate Resource'}
-              </p>
-            </div>
-
-            {/* Profile fields list / Group details list */}
-            {activeChatType === 'user' ? (
-              <div className="space-y-4 pt-4 border-t border-tg-borderDark">
-                <div className="flex items-start gap-3">
-                  <PermIdentityIcon className="text-tg-blue mt-0.5" fontSize="small" />
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-tg-textMuted block">Employee ID</span>
-                    <span className="text-xs text-tg-textDefault">{activeChat.employeeId || 'N/A'}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <CorporateFareIcon className="text-tg-blue mt-0.5" fontSize="small" />
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-tg-textMuted block">Department</span>
-                    <span className="text-xs text-tg-textDefault">{activeChat.department || 'N/A'}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <PermContactCalendarIcon className="text-tg-blue mt-0.5" fontSize="small" />
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-tg-textMuted block">Email Address</span>
-                    <span className="text-xs text-tg-textDefault">{activeChat.email}</span>
-                  </div>
-                </div>
-              </div>
-            ) : activeChatType === 'channel' ? (
-              // Channel details
-              <div className="space-y-4 pt-4 border-t border-tg-borderDark text-xs text-tg-textMuted leading-relaxed">
-                <p><strong className="text-tg-textDefault">Description:</strong> {activeChat.description || 'No description provided.'}</p>
-                <p><strong className="text-tg-textDefault">Visibility:</strong> {activeChat.type}</p>
-                
-                <p>
-                  <strong className="text-tg-textDefault font-bold">Channel ID:</strong>
-                  <div className="flex items-center gap-1.5 mt-1 bg-gray-900/30 p-1.5 rounded-lg border border-tg-borderDark">
-                    <span className="text-[10px] truncate select-all flex-grow font-mono text-tg-blue">
-                      {activeChat._id}
-                    </span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(activeChat._id);
-                        dispatch(setAlert({ message: 'Channel ID copied!', severity: 'success' }));
-                      }}
-                      className="px-1.5 py-0.5 bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue text-[9px] font-bold rounded"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </p>
-
-                <p>
-                  <strong className="text-tg-textDefault font-bold">Invite Link:</strong>
-                  <div className="flex items-center gap-1.5 mt-1 bg-gray-900/30 p-1.5 rounded-lg border border-tg-borderDark">
-                    <span className="text-[10px] truncate select-all flex-grow font-mono text-tg-blue">
-                      {window.location.origin}/join/channel/{activeChat.inviteToken}
-                    </span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/join/channel/${activeChat.inviteToken}`);
-                        dispatch(setAlert({ message: 'Channel link copied!', severity: 'success' }));
-                      }}
-                      className="px-1.5 py-0.5 bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue text-[9px] font-bold rounded"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </p>
-
-                {/* Subscribers section */}
-                <div className="pt-4 border-t border-tg-borderDark space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] uppercase font-bold text-tg-textMuted tracking-wider">
-                      Subscribers ({activeChat.subscribers?.length || 0})
-                    </span>
-                    {((activeChat.creator?._id || activeChat.creator) === user?.id || user?.role === 'admin') && (
-                      <button
-                        onClick={() => setShowAddMemberPanel(!showAddMemberPanel)}
-                        className="p-1 rounded bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition flex items-center justify-center"
-                        title="Add Subscriber"
-                      >
-                        <PersonAddIcon fontSize="inherit" style={{ fontSize: '14px' }} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Add Subscriber Panel */}
-                  {showAddMemberPanel && (
-                    <div className="bg-tg-bgDark border border-tg-borderDark p-2.5 rounded-xl space-y-2">
-                      <div className="relative">
-                        <SearchIcon className="absolute left-2 top-1.5 text-gray-500" fontSize="inherit" style={{ fontSize: '12px' }} />
-                        <input
-                          type="text"
-                          placeholder="Search contacts to add..."
-                          value={contactSearchQuery}
-                          onChange={(e) => setContactSearchQuery(e.target.value)}
-                          className="w-full pl-7 pr-3 py-1 bg-tg-bgDark border border-tg-borderDark rounded-lg focus:outline-none text-[10px] text-tg-textDefault placeholder-tg-textMuted"
-                        />
-                      </div>
-                      <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
-                        {contacts
-                          .filter(c => {
-                            const isAlreadySub = activeChat.subscribers?.some(s => (s._id || s) === c._id);
-                            if (isAlreadySub) return false;
-                            const fullName = `${c.firstName || ''} ${c.lastName || ''} ${c.username}`.toLowerCase();
-                            return fullName.includes(contactSearchQuery.toLowerCase());
-                          })
-                          .map(c => (
-                            <div key={c._id} className="flex items-center justify-between gap-2 p-1 hover:bg-tg-bgDark rounded-lg">
-                              <div className="flex items-center gap-2 overflow-hidden">
-                                <div className="w-5 h-5 rounded bg-tg-bgDark flex-shrink-0 flex items-center justify-center text-[9px] text-tg-textDefault font-bold border border-tg-borderDark">
-                                  {c.profilePhoto ? (
-                                    <img src={getFileUrl(c.profilePhoto)} alt="" className="w-full h-full object-cover rounded" />
-                                  ) : (
-                                    <span>{(c.firstName || c.username)[0].toUpperCase()}</span>
-                                  )}
-                                </div>
-                                <span className="text-[10px] text-tg-textDefault truncate">
-                                  {c.firstName || c.lastName ? `${c.firstName || ''} ${c.lastName || ''}`.trim() : `@${c.username}`}
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => handleAddSubscriber(c._id)}
-                                className="px-1.5 py-0.5 bg-tg-blue hover:bg-tg-darkBlue text-white text-[8px] font-bold rounded"
-                              >
-                                Add
-                              </button>
-                            </div>
-                          ))}
-                        {contacts.filter(c => {
-                          const isAlreadySub = activeChat.subscribers?.some(s => (s._id || s) === c._id);
-                          if (isAlreadySub) return false;
-                          const fullName = `${c.firstName || ''} ${c.lastName || ''} ${c.username}`.toLowerCase();
-                          return fullName.includes(contactSearchQuery.toLowerCase());
-                        }).length === 0 && (
-                          <p className="text-[9px] text-tg-textMuted text-center py-2">No contacts to add</p>
-                        )}
-                      </div>
-                    </div>
+      <div className="flex-grow overflow-y-auto p-4.5 text-left">
+        <AnimatePresence mode="wait">
+          {activeTab === 'profile' && (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="space-y-6"
+            >
+              {/* Avatar Display */}
+              <div className="flex flex-col items-center">
+                <div className="w-20 h-20 rounded-2xl bg-tg-blue/10 border border-tg-blue/20 overflow-hidden flex items-center justify-center text-tg-blue font-bold text-2xl mb-3 shadow-md flex-shrink-0">
+                  {activeChat.profilePhoto || activeChat.avatar ? (
+                    <img src={getFileUrl(activeChat.profilePhoto || activeChat.avatar)} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{(activeChat.firstName || activeChat.name || activeChat.username || '?')[0].toUpperCase()}</span>
                   )}
+                </div>
+                <h3 className="text-sm font-bold text-tg-textDefault">
+                  {activeChatType === 'user' 
+                    ? (activeChat.firstName || activeChat.lastName ? `${activeChat.firstName || ''} ${activeChat.lastName || ''}`.trim() : `@${activeChat.username}`)
+                    : activeChat.name}
+                </h3>
+                <p className="text-[10px] text-tg-textMuted mt-1 font-medium tracking-wide">
+                  {activeChatType === 'user' ? `@${activeChat.username}` : 'Corporate Resource'}
+                </p>
+              </div>
 
-                  {/* Subscribers List */}
-                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                    {activeChat.subscribers
-                      ?.filter(s => {
-                        const nameStr = `${s.firstName || ''} ${s.lastName || ''} ${s.username}`.toLowerCase();
-                        return nameStr.includes(memberSearchQuery.toLowerCase());
-                      })
-                      .map(s => {
-                        const isTargetSelf = s._id === user.id;
-                        const isCreator = (activeChat.creator?._id || activeChat.creator) === s._id;
-                        const isCallerCreator = (activeChat.creator?._id || activeChat.creator) === user?.id || user?.role === 'admin';
-                        const canRemove = isCallerCreator && !isCreator && !isTargetSelf;
+              {/* Profile fields list */}
+              {activeChatType === 'user' ? (
+                <div className="space-y-4 pt-4 border-t border-tg-borderDark/60">
+                  <div className="flex items-start gap-3">
+                    <PermIdentityIcon className="text-tg-blue mt-0.5" fontSize="small" />
+                    <div>
+                      <span className="text-[9px] uppercase font-bold text-tg-textMuted block">Employee ID</span>
+                      <span className="text-xs text-tg-textDefault font-medium">{activeChat.employeeId || 'N/A'}</span>
+                    </div>
+                  </div>
 
-                        return (
-                          <div key={s._id} className="flex items-center justify-between gap-2 p-1.5 hover:bg-tg-bgDark rounded-xl border border-transparent hover:border-tg-borderDark">
-                            <div className="flex items-center gap-2 overflow-hidden">
-                              <div className="relative flex-shrink-0">
-                                <div className="w-7 h-7 rounded-lg bg-tg-bgDark flex items-center justify-center text-[10px] text-tg-textDefault border border-tg-borderDark">
-                                  {s.profilePhoto ? (
-                                    <img src={getFileUrl(s.profilePhoto)} alt="" className="w-full h-full object-cover rounded-lg" />
-                                  ) : (
-                                    <span>{(s.firstName || s.username)[0].toUpperCase()}</span>
-                                  )}
-                                </div>
-                                {s.isOnline && (
-                                  <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-tg-bgSidebarDark rounded-full" />
-                                )}
-                              </div>
-                              <div className="text-left overflow-hidden">
-                                <span className="text-[11px] font-semibold text-tg-textDefault block truncate leading-tight">
-                                  {s.firstName || s.lastName ? `${s.firstName || ''} ${s.lastName || ''}`.trim() : `@${s.username}`}
-                                </span>
-                                <span className="text-[8px] text-tg-textMuted block truncate">
-                                  {isCreator ? 'Owner' : 'Subscriber'}
-                                </span>
-                              </div>
-                            </div>
-                            {canRemove && (
-                              <button
-                                onClick={() => handleRemoveSubscriber(s._id)}
-                                className="p-1 rounded text-red-400 hover:bg-red-500/10 hover:text-red-500 transition"
-                                title="Remove subscriber"
-                              >
-                                <DeleteIcon fontSize="inherit" style={{ fontSize: '13px' }} />
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
+                  <div className="flex items-start gap-3">
+                    <CorporateFareIcon className="text-tg-blue mt-0.5" fontSize="small" />
+                    <div>
+                      <span className="text-[9px] uppercase font-bold text-tg-textMuted block">Department</span>
+                      <span className="text-xs text-tg-textDefault font-medium">{activeChat.department || 'General'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <PermContactCalendarIcon className="text-tg-blue mt-0.5" fontSize="small" />
+                    <div>
+                      <span className="text-[9px] uppercase font-bold text-tg-textMuted block">Email Contact</span>
+                      <span className="text-xs text-tg-textDefault break-all font-medium">{activeChat.email || 'N/A'}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              // Group details
-              <div className="space-y-6 pt-4 border-t border-tg-borderDark">
-                {isEditingGroup ? (
-                  <form onSubmit={handleSaveGroupDetails} className="space-y-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-16 h-16 rounded-2xl bg-tg-bgDark border border-tg-borderDark overflow-hidden flex items-center justify-center relative shadow-inner">
-                        {groupAvatarPreview ? (
-                          <img src={getFileUrl(groupAvatarPreview)} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-xl font-bold text-tg-blue">{groupName[0]?.toUpperCase()}</span>
-                        )}
-                      </div>
-                      <label className="text-[10px] text-tg-blue hover:underline cursor-pointer mt-1.5 font-semibold">
-                        Change Avatar
-                        <input 
-                          type="file" 
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              setGroupAvatarFile(e.target.files[0]);
-                              setGroupAvatarPreview(URL.createObjectURL(e.target.files[0]));
-                            }
-                          }} 
-                          className="hidden" 
-                          accept="image/*" 
-                        />
-                      </label>
-                    </div>
+              ) : (
+                /* Group or Channel Management panel */
+                <div className="space-y-5 pt-4 border-t border-tg-borderDark/60">
+                  <div className="bg-tg-bgDark/35 border border-tg-borderDark/50 rounded-2xl p-3 space-y-2">
+                    <span className="text-[9px] uppercase font-bold text-tg-textMuted block">Description</span>
+                    <p className="text-xs text-tg-textDefault leading-relaxed">
+                      {activeChat.description || 'No description provided.'}
+                    </p>
+                  </div>
 
-                    <div>
-                      <label className="block text-[9px] uppercase text-tg-textMuted font-bold mb-1 tracking-wider">Group Name</label>
-                      <input
-                        type="text"
-                        required
-                        value={groupName}
-                        onChange={(e) => setGroupName(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
-                      />
-                    </div>
+                  {/* Group Edit form if admin/owner */}
+                  {activeChatType === 'group' && isGroupAdmin && (
+                    <div className="border-t border-tg-borderDark/50 pt-3">
+                      {!isEditingGroup ? (
+                        <button
+                          onClick={() => setIsEditingGroup(true)}
+                          className="w-full flex items-center justify-center gap-2 py-2 bg-tg-bgDark border border-tg-borderDark hover:bg-tg-bgDark/60 text-tg-textDefault rounded-xl text-xs font-semibold transition cursor-pointer"
+                        >
+                          <EditIcon fontSize="inherit" style={{ fontSize: '13px' }} />
+                          Edit Group Settings
+                        </button>
+                      ) : (
+                        <form onSubmit={handleSaveGroupDetails} className="space-y-3.5">
+                          <div className="flex flex-col items-center">
+                            <div className="w-14 h-14 rounded-2xl bg-tg-bgDark overflow-hidden flex items-center justify-center border border-tg-borderDark shadow-inner">
+                              {groupAvatarPreview ? (
+                                <img src={getFileUrl(groupAvatarPreview)} alt="Avatar" className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-lg font-bold">{groupName[0]?.toUpperCase()}</span>
+                              )}
+                            </div>
+                            <label className="text-[10px] text-tg-blue hover:underline cursor-pointer mt-1.5 font-bold">
+                              Upload Photo
+                              <input type="file" onChange={handleGroupAvatarUpload} className="hidden" accept="image/*" />
+                            </label>
+                          </div>
 
-                    <div>
-                      <label className="block text-[9px] uppercase text-tg-textMuted font-bold mb-1 tracking-wider">Description</label>
-                      <textarea
-                        value={groupDesc}
-                        onChange={(e) => setGroupDesc(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault h-16 focus:outline-none focus:border-tg-blue"
-                      />
-                    </div>
+                          <div className="space-y-1.5">
+                            <label className="block text-[9px] uppercase font-bold text-tg-textMuted ml-0.5">Group Name</label>
+                            <input
+                              type="text"
+                              value={groupName}
+                              onChange={(e) => setGroupName(e.target.value)}
+                              className="w-full px-3 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs"
+                            />
+                          </div>
 
-                    <div>
-                      <label className="block text-[9px] uppercase text-tg-textMuted font-bold mb-1 tracking-wider">Type</label>
-                      <select
-                        value={groupType}
-                        onChange={(e) => setGroupType(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
-                      >
-                        <option value="private">Private (Invite Only)</option>
-                        <option value="public">Public</option>
-                      </select>
-                    </div>
+                          <div className="space-y-1.5">
+                            <label className="block text-[9px] uppercase font-bold text-tg-textMuted ml-0.5">Description</label>
+                            <textarea
+                              value={groupDesc}
+                              onChange={(e) => setGroupDesc(e.target.value)}
+                              className="w-full px-3 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs h-14 resize-none"
+                            />
+                          </div>
 
-                    <div className="flex gap-2">
-                      <button
-                        type="submit"
-                        className="flex-grow py-2 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1"
-                      >
-                        <SaveIcon fontSize="inherit" style={{ fontSize: '13px' }} /> Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingGroup(false)}
-                        className="flex-grow py-2 bg-tg-bgDark hover:bg-tg-bgDark/80 border border-tg-borderDark text-tg-textDefault text-xs font-semibold rounded-xl transition"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="space-y-2.5 text-xs text-tg-textMuted leading-relaxed">
-                      <p><strong className="text-tg-textDefault">Description:</strong> {activeChat.description || 'No description provided.'}</p>
-                      <p><strong className="text-tg-textDefault">Visibility:</strong> {activeChat.type}</p>
-                      <p><strong className="text-tg-textDefault">Owner:</strong> @{activeChat.owner?.username || 'System'}</p>
-                      <p>
-                        <strong className="text-tg-textDefault font-bold">Group ID:</strong>
-                        <div className="flex items-center gap-1.5 mt-1 bg-gray-900/30 p-1.5 rounded-lg border border-tg-borderDark">
-                          <span className="text-[10px] truncate select-all flex-grow font-mono text-tg-blue">
-                            {activeChat._id}
-                          </span>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(activeChat._id);
-                              dispatch(setAlert({ message: 'Group ID copied!', severity: 'success' }));
-                            }}
-                            className="px-1.5 py-0.5 bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue text-[9px] font-bold rounded"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </p>
-
-                      <p>
-                        <strong className="text-tg-textDefault font-bold">Invite Link:</strong>
-                        <div className="flex items-center gap-1.5 mt-1 bg-gray-900/30 p-1.5 rounded-lg border border-tg-borderDark">
-                          <span className="text-[10px] truncate select-all flex-grow font-mono text-tg-blue">
-                            {window.location.origin}/join/group/{activeChat.inviteToken}
-                          </span>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(`${window.location.origin}/join/group/${activeChat.inviteToken}`);
-                              dispatch(setAlert({ message: 'Group link copied!', severity: 'success' }));
-                            }}
-                            className="px-1.5 py-0.5 bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue text-[9px] font-bold rounded"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </p>
-                      
-                      {/* Announcement toggle */}
-                      {(() => {
-                        const currentMember = activeChat.members?.find(m => (m.user?._id || m.user)?.toString() === user?.id?.toString());
-                        const userRole = currentMember ? currentMember.role : null;
-                        const isGroupAdminOrOwner = userRole === 'owner' || userRole === 'admin' || user?.role === 'admin';
-                        return isGroupAdminOrOwner && (
-                          <div className="flex items-center justify-between pt-2.5 border-t border-tg-borderDark">
-                            <span className="text-[9px] uppercase font-bold text-tg-textMuted">Announcement Mode</span>
+                          <div className="flex gap-2">
                             <button
-                              onClick={handleToggleAnnouncementMode}
-                              className={`px-2 py-0.5 rounded text-[9px] font-bold border transition ${activeChat.announcementMode ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-tg-bgDark text-tg-textMuted border-tg-borderDark'}`}
+                              type="submit"
+                              className="flex-1 py-2 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-bold rounded-xl shadow-md cursor-pointer"
                             >
-                              {activeChat.announcementMode ? 'ON' : 'OFF'}
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsEditingGroup(false)}
+                              className="flex-1 py-2 bg-tg-bgDark hover:bg-tg-bgDark/60 border border-tg-borderDark rounded-xl text-xs text-tg-textDefault cursor-pointer"
+                            >
+                              Cancel
                             </button>
                           </div>
-                        );
-                      })()}
-                    </div>
-
-                    {(() => {
-                      const currentMember = activeChat.members?.find(m => (m.user?._id || m.user)?.toString() === user?.id?.toString());
-                      const userRole = currentMember ? currentMember.role : null;
-                      const isGroupAdminOrOwner = userRole === 'owner' || userRole === 'admin' || user?.role === 'admin';
-                      return isGroupAdminOrOwner && (
-                        <button
-                          onClick={() => {
-                            setGroupName(activeChat.name || '');
-                            setGroupDesc(activeChat.description || '');
-                            setGroupType(activeChat.type || 'private');
-                            setGroupAvatarPreview(activeChat.avatar || '');
-                            setIsEditingGroup(true);
-                          }}
-                          className="w-full py-2 bg-tg-bgDark hover:bg-tg-bgDark border border-tg-borderDark text-tg-textDefault text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5"
-                        >
-                          <EditIcon fontSize="inherit" style={{ fontSize: '13px' }} /> Edit Group Details
-                        </button>
-                      );
-                    })()}
-                  </div>
-                )}
-
-                {/* Group Members List section */}
-                <div className="pt-4 border-t border-tg-borderDark space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] uppercase font-bold text-tg-textMuted tracking-wider">
-                      Members ({activeChat.members?.length || 0})
-                    </span>
-                    {(() => {
-                      const currentMember = activeChat.members?.find(m => (m.user?._id || m.user)?.toString() === user?.id?.toString());
-                      const userRole = currentMember ? currentMember.role : null;
-                      const isGroupAdminOrOwner = userRole === 'owner' || userRole === 'admin' || user?.role === 'admin';
-                      return isGroupAdminOrOwner && (
-                        <button
-                          onClick={() => setShowAddMemberPanel(!showAddMemberPanel)}
-                          className="p-1 rounded bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition flex items-center justify-center"
-                          title="Add Member"
-                        >
-                          <PersonAddIcon fontSize="inherit" style={{ fontSize: '14px' }} />
-                        </button>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Add Member Panel */}
-                  {showAddMemberPanel && (
-                    <div className="bg-tg-bgDark border border-tg-borderDark p-2.5 rounded-xl space-y-2">
-                      <div className="relative">
-                        <SearchIcon className="absolute left-2 top-1.5 text-gray-500" fontSize="inherit" style={{ fontSize: '12px' }} />
-                        <input
-                          type="text"
-                          placeholder="Search contacts to add..."
-                          value={contactSearchQuery}
-                          onChange={(e) => setContactSearchQuery(e.target.value)}
-                          className="w-full pl-7 pr-3 py-1 bg-tg-bgDark border border-tg-borderDark rounded-lg focus:outline-none text-[10px] text-tg-textDefault placeholder-tg-textMuted"
-                        />
-                      </div>
-                      <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
-                        {contacts
-                          .filter(c => {
-                            const isAlreadyMember = activeChat.members?.some(m => (m.user?._id || m.user) === c._id);
-                            if (isAlreadyMember) return false;
-                            
-                            const fullName = `${c.firstName || ''} ${c.lastName || ''} ${c.username}`.toLowerCase();
-                            return fullName.includes(contactSearchQuery.toLowerCase());
-                          })
-                          .map(c => (
-                            <div key={c._id} className="flex items-center justify-between gap-2 p-1 hover:bg-tg-bgDark rounded-lg">
-                              <div className="flex items-center gap-2 overflow-hidden">
-                                <div className="w-5 h-5 rounded bg-tg-bgDark flex-shrink-0 flex items-center justify-center text-[9px] text-tg-textDefault font-bold border border-tg-borderDark">
-                                  {c.profilePhoto ? (
-                                    <img src={getFileUrl(c.profilePhoto)} alt="" className="w-full h-full object-cover rounded" />
-                                  ) : (
-                                    <span>{(c.firstName || c.username)[0].toUpperCase()}</span>
-                                  )}
-                                </div>
-                                <span className="text-[10px] text-tg-textDefault truncate">
-                                  {c.firstName || c.lastName ? `${c.firstName || ''} ${c.lastName || ''}`.trim() : `@${c.username}`}
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => handleAddMember(c._id)}
-                                className="px-1.5 py-0.5 bg-tg-blue hover:bg-tg-darkBlue text-white text-[8px] font-bold rounded"
-                              >
-                                Add
-                              </button>
-                            </div>
-                          ))}
-                        {contacts.filter(c => {
-                          const isAlreadyMember = activeChat.members?.some(m => (m.user?._id || m.user) === c._id);
-                          if (isAlreadyMember) return false;
-                          const fullName = `${c.firstName || ''} ${c.lastName || ''} ${c.username}`.toLowerCase();
-                          return fullName.includes(contactSearchQuery.toLowerCase());
-                        }).length === 0 && (
-                          <p className="text-[9px] text-tg-textMuted text-center py-2">No contacts to add</p>
-                        )}
-                      </div>
+                        </form>
+                      )}
                     </div>
                   )}
 
-                  {/* Members search bar */}
-                  <div className="relative">
-                    <SearchIcon className="absolute left-2.5 top-2 text-gray-500" fontSize="inherit" />
-                    <input
-                      type="text"
-                      placeholder="Search group members..."
-                      value={memberSearchQuery}
-                      onChange={(e) => setMemberSearchQuery(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1 bg-tg-bgDark border border-tg-borderDark rounded-lg focus:outline-none text-[10px] text-tg-textDefault placeholder-tg-textMuted"
-                    />
-                  </div>
+                  {/* Announcement mode toggle (channels or group admin settings) */}
+                  {activeChatType === 'group' && isGroupOwner && (
+                    <div className="flex items-center justify-between p-3 bg-tg-bgDark/35 border border-tg-borderDark/50 rounded-2xl shadow-inner">
+                      <div className="text-left">
+                        <span className="text-[10px] font-bold text-tg-textDefault block">Announcement Mode</span>
+                        <span className="text-[8px] text-tg-textMuted block mt-0.5">Only admins can post messages</span>
+                      </div>
+                      <button
+                        onClick={handleToggleAnnouncementMode}
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${activeChat.announcementMode ? 'bg-tg-blue' : 'bg-tg-bgDark border border-tg-borderDark'}`}
+                      >
+                        <div className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${activeChat.announcementMode ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+                  )}
 
-                  {/* Members List */}
-                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                    {activeChat.members
-                      ?.filter(m => {
-                        const u = m.user;
-                        if (!u) return false;
-                        const nameStr = `${u.firstName || ''} ${u.lastName || ''} ${u.username}`.toLowerCase();
-                        return nameStr.includes(memberSearchQuery.toLowerCase());
-                      })
-                      .map(m => {
-                        const u = m.user;
-                        const isTargetSelf = u._id === user.id;
-                        const isTargetOwner = m.role === 'owner';
-                        
-                        const currentMember = activeChat.members?.find(mem => (mem.user?._id || mem.user)?.toString() === user?.id?.toString());
-                        const userRole = currentMember ? currentMember.role : null;
-                        const isGroupAdminOrOwner = userRole === 'owner' || userRole === 'admin' || user?.role === 'admin';
-                        
-                        const canRemove = isGroupAdminOrOwner && !isTargetOwner && !isTargetSelf;
+                  {/* Member / Subscriber List Area */}
+                  <div className="border-t border-tg-borderDark/60 pt-4 space-y-3">
+                    <div className="flex justify-between items-center px-1">
+                      <span className="text-[10px] font-bold text-tg-textMuted uppercase tracking-wider">
+                        {activeChatType === 'group' ? 'Members' : 'Subscribers'}
+                      </span>
+                      {((activeChatType === 'group' && isGroupAdmin) || (activeChatType === 'channel' && isChannelCreator)) && (
+                        <button
+                          onClick={() => setShowAddMemberPanel(!showAddMemberPanel)}
+                          className="p-1 rounded-xl text-tg-blue bg-tg-blue/10 hover:bg-tg-blue/20 transition cursor-pointer"
+                          title="Add Member"
+                        >
+                          <PersonAddIcon fontSize="small" style={{ fontSize: '13px' }} />
+                        </button>
+                      )}
+                    </div>
 
-                        return (
-                          <div key={u._id} className="flex items-center justify-between gap-2 p-1.5 hover:bg-tg-bgDark rounded-xl border border-transparent hover:border-tg-borderDark">
+                    {/* Member Add Overlay Drawer */}
+                    {showAddMemberPanel && (
+                      <div className="bg-tg-bgDark border border-tg-borderDark p-3 rounded-2xl space-y-3 shadow-inner">
+                        <div className="relative">
+                          <SearchIcon className="absolute left-2.5 top-2 text-tg-textMuted" fontSize="inherit" style={{ fontSize: '12px' }} />
+                          <input
+                            type="text"
+                            placeholder="Search contacts..."
+                            value={contactSearchQuery}
+                            onChange={(e) => setContactSearchQuery(e.target.value)}
+                            className="w-full pl-7 pr-3 py-1 bg-tg-bgSidebarDark border border-tg-borderDark/80 rounded-xl text-[10px]"
+                          />
+                        </div>
+                        <div className="max-h-36 overflow-y-auto space-y-1.5 p-1">
+                          {addableContacts.length > 0 ? (
+                            addableContacts.map(c => (
+                              <div key={c._id} className="flex items-center justify-between gap-1 text-[11px]">
+                                <span className="truncate text-tg-textDefault font-medium">
+                                  {c.firstName || c.lastName ? `${c.firstName} ${c.lastName}` : `@${c.username}`}
+                                </span>
+                                <button
+                                  onClick={() => activeChatType === 'group' ? handleAddMember(c._id) : handleAddSubscriber(c._id)}
+                                  className="px-2 py-0.5 bg-tg-blue hover:bg-tg-darkBlue text-white font-bold rounded-lg text-[9px] cursor-pointer"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-[10px] text-tg-textMuted block text-center py-2">No contacts to add</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="relative">
+                      <SearchIcon className="absolute left-2 top-2.5 text-tg-textMuted" fontSize="inherit" style={{ fontSize: '12px' }} />
+                      <input
+                        type="text"
+                        placeholder="Search members..."
+                        value={memberSearchQuery}
+                        onChange={(e) => setMemberSearchQuery(e.target.value)}
+                        className="w-full pl-7 pr-3 py-1.5 bg-tg-bgDark/40 border border-tg-borderDark rounded-xl text-[10px]"
+                      />
+                    </div>
+
+                    {/* Member directory listings */}
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                      {activeChatType === 'group' ? (
+                        filteredGroupMembers.map(m => (
+                          <div key={m.user._id} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2 overflow-hidden">
-                              <div className="relative flex-shrink-0">
-                                <div className="w-7 h-7 rounded-lg bg-tg-bgDark flex items-center justify-center text-[10px] text-tg-textDefault border border-tg-borderDark">
-                                  {u.profilePhoto ? (
-                                    <img src={getFileUrl(u.profilePhoto)} alt="" className="w-full h-full object-cover rounded-lg" />
-                                  ) : (
-                                    <span>{(u.firstName || u.username)[0].toUpperCase()}</span>
-                                  )}
-                                </div>
-                                {u.isOnline && (
-                                  <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-tg-bgSidebarDark rounded-full" />
+                              <div className="w-7 h-7 rounded-xl bg-tg-bgDark flex items-center justify-center font-bold text-[10px] border border-tg-borderDark/80">
+                                {m.user.profilePhoto ? (
+                                  <img src={getFileUrl(m.user.profilePhoto)} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <span>{m.user.firstName?.[0]?.toUpperCase() || m.user.username[0]?.toUpperCase()}</span>
                                 )}
                               </div>
                               <div className="text-left overflow-hidden">
-                                <span className="text-[11px] font-semibold text-tg-textDefault block truncate leading-tight">
-                                  {u.firstName || u.lastName ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : `@${u.username}`}
+                                <span className="font-semibold block truncate leading-tight">
+                                  {m.user.firstName || m.user.lastName ? `${m.user.firstName} ${m.user.lastName}` : `@${m.user.username}`}
                                 </span>
-                                <span className="text-[8px] text-tg-textMuted block truncate">
-                                  {u.department || 'Staff'} • {m.role}
-                                </span>
+                                <span className="text-[8px] text-tg-textMuted font-mono">{m.role}</span>
                               </div>
                             </div>
-
-                            <div className="flex items-center gap-1.5">
-                              {/* Role changer dropdown if owner/admin */}
-                              {isGroupAdminOrOwner && !isTargetOwner && !isTargetSelf && (userRole === 'owner' || user?.role === 'admin') && (
+                            
+                            {/* Admin actions over members */}
+                            {isGroupAdmin && m.user._id !== user.id && m.role !== 'owner' && (
+                              <div className="flex gap-1.5">
                                 <select
                                   value={m.role}
-                                  onChange={(e) => handleUpdateRole(u._id, e.target.value)}
-                                  className="bg-tg-bgDark border border-tg-borderDark text-[8px] text-tg-textDefault rounded px-1 py-0.5 focus:outline-none focus:border-tg-blue"
+                                  onChange={(e) => handleUpdateRole(m.user._id, e.target.value)}
+                                  className="bg-tg-bgDark border border-tg-borderDark rounded p-0.5 text-[8px] font-bold text-tg-textMuted cursor-pointer"
                                 >
                                   <option value="member">Member</option>
                                   <option value="admin">Admin</option>
                                 </select>
-                              )}
-                              {canRemove && (
                                 <button
-                                  onClick={() => handleRemoveMember(u._id)}
-                                  className="p-1 rounded text-red-400 hover:bg-red-500/10 hover:text-red-500 transition"
-                                  title="Remove member"
+                                  onClick={() => handleRemoveMember(m.user._id)}
+                                  className="text-red-400 hover:text-red-500 cursor-pointer"
+                                  title="Remove Member"
                                 >
-                                  <DeleteIcon fontSize="inherit" style={{ fontSize: '13px' }} />
+                                  <DeleteIcon style={{ fontSize: '11px' }} />
                                 </button>
-                              )}
-                            </div>
+                              </div>
+                            )}
                           </div>
-                        );
-                      })}
+                        ))
+                      ) : (
+                        filteredChannelSubscribers.map(s => (
+                          <div key={s._id} className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <div className="w-7 h-7 rounded-xl bg-tg-bgDark flex items-center justify-center font-bold text-[10px] border border-tg-borderDark/80">
+                                {s.profilePhoto ? (
+                                  <img src={getFileUrl(s.profilePhoto)} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <span>{s.firstName?.[0]?.toUpperCase() || s.username[0]?.toUpperCase()}</span>
+                                )}
+                              </div>
+                              <span className="font-semibold truncate">
+                                {s.firstName || s.lastName ? `${s.firstName} ${s.lastName}` : `@${s.username}`}
+                              </span>
+                            </div>
+                            {isChannelCreator && s._id !== user.id && (
+                              <button
+                                onClick={() => handleRemoveSubscriber(s._id)}
+                                className="text-red-400 hover:text-red-500 cursor-pointer"
+                                title="Remove Subscriber"
+                              >
+                                <DeleteIcon style={{ fontSize: '11px' }} />
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'files' && (
+            <motion.div
+              key="files"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="space-y-3"
+            >
+              <div className="text-[10px] font-bold text-tg-textMuted uppercase px-1 tracking-wider">
+                Shared Documents
               </div>
-            )}
-          </div>
-        )}
+              <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
+                {docsOnly.length > 0 ? (
+                  docsOnly.map((file, fIdx) => (
+                    <div
+                      key={file._id || fIdx}
+                      className="p-2.5 bg-tg-bgDark/35 border border-tg-borderDark rounded-xl flex items-center gap-3 shadow-sm hover:bg-tg-bgDark/50 transition"
+                    >
+                      <FolderOpenIcon className="text-tg-blue" fontSize="small" />
+                      <div className="text-left overflow-hidden flex-grow">
+                        <span className="text-[11px] font-bold text-tg-textDefault truncate block">{file.originalname}</span>
+                        <span className="text-[9px] text-tg-textMuted">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB • {file.uploader ? (file.uploader.firstName || file.uploader.username) : 'N/A'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleDownloadFile(file._id, file.originalname)}
+                        className="p-1 rounded-full bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition cursor-pointer flex-shrink-0"
+                        title="Download file"
+                      >
+                        <DownloadIcon fontSize="small" style={{ fontSize: '14px' }} />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <span className="text-[10px] text-tg-textMuted block text-center py-6">No documents shared yet</span>
+                )}
+              </div>
+            </motion.div>
+          )}
 
-        {activeTab === 'files' && (
-          <div className="space-y-3">
-            {docsOnly.length === 0 ? (
-              <p className="text-[10px] text-tg-textMuted text-center py-10">No documents shared yet.</p>
-            ) : (
-              docsOnly.map(f => (
-                <a
-                  key={f._id}
-                  href={`${api.defaults.baseURL}/file/download/${f._id}`}
-                  className="flex items-center gap-3 p-2 bg-tg-bgDark border border-tg-borderDark hover:bg-tg-bgDark rounded-xl transition cursor-pointer overflow-hidden"
-                >
-                  <FolderOpenIcon className="text-tg-blue flex-shrink-0" fontSize="small" />
-                  <div className="overflow-hidden">
-                    <span className="text-xs font-semibold text-tg-textDefault block truncate">{f.originalname}</span>
-                    <span className="text-[9px] text-tg-textMuted">
-                      {(f.size / 1024 / 1024).toFixed(2)} MB • v{f.version}
-                    </span>
-                  </div>
-                </a>
-              ))
-            )}
-          </div>
-        )}
-
-        {activeTab === 'media' && (
-          <div className="grid grid-cols-3 gap-2">
-            {imagesOnly.length === 0 ? (
-              <p className="text-[10px] text-tg-textMuted text-center py-10 col-span-3">No images shared yet.</p>
-            ) : (
-              imagesOnly.map(f => (
-                <a
-                  key={f._id}
-                  href={getFileUrl(f.path)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="aspect-square bg-tg-bgDark rounded-lg overflow-hidden border border-tg-borderDark hover:scale-105 transition"
-                >
-                  <img src={getFileUrl(f.path)} alt="" className="w-full h-full object-cover" />
-                </a>
-              ))
-            )}
-          </div>
-        )}
+          {activeTab === 'media' && (
+            <motion.div
+              key="media"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="space-y-3"
+            >
+              <div className="text-[10px] font-bold text-tg-textMuted uppercase px-1 tracking-wider">
+                Shared Images & Videos
+              </div>
+              <div className="grid grid-cols-3 gap-2 max-h-[70vh] overflow-y-auto pr-1">
+                {imagesOnly.length > 0 ? (
+                  imagesOnly.map((file, fIdx) => (
+                    <div
+                      key={file._id || fIdx}
+                      className="aspect-square bg-tg-bgDark rounded-xl overflow-hidden border border-tg-borderDark cursor-pointer relative group/gal shadow-sm"
+                      onClick={() => window.open(getFileUrl(file.path), '_blank')}
+                    >
+                      <img src={getFileUrl(file.path)} alt="" className="w-full h-full object-cover hover:scale-105 transition duration-300" />
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDownloadFile(file._id, file.originalname);
+                        }}
+                        className="absolute bottom-1 right-1 p-1 bg-black/60 hover:bg-black/85 text-white rounded-full opacity-0 group-hover/gal:opacity-100 transition shadow"
+                        title="Download"
+                      >
+                        <DownloadIcon fontSize="inherit" style={{ fontSize: '11px' }} />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <span className="text-[10px] text-tg-textMuted block text-center col-span-3 py-6">No media shared yet</span>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

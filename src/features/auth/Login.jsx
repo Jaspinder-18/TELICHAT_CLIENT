@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import api from '../../services/api.js';
 import { loginStart, loginSuccess, loginFailure } from '../../redux/authSlice.js';
 import { setAlert } from '../../redux/uiSlice.js';
@@ -59,34 +60,52 @@ export const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-tg-bgDark p-4 relative overflow-hidden tg-chat-bg">
-      {/* Decorative gradient blur */}
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-tg-blue opacity-10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-600 opacity-10 blur-[120px] rounded-full pointer-events-none" />
+      {/* Decorative premium blurs */}
+      <div className="absolute top-[-25%] left-[-15%] w-[600px] h-[600px] bg-tg-blue/15 blur-[150px] rounded-full pointer-events-none animate-pulse" />
+      <div className="absolute bottom-[-25%] right-[-15%] w-[600px] h-[600px] bg-purple-600/15 blur-[150px] rounded-full pointer-events-none animate-pulse" style={{ animationDuration: '6s' }} />
 
-      <div className="w-[92%] sm:w-full max-w-md bg-tg-bgSidebarDark/90 backdrop-blur-xl border border-tg-borderDark rounded-2xl shadow-2xl p-6 sm:p-8 relative z-10 animate-slide-in">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="w-[92%] sm:w-full max-w-md bg-tg-bgSidebarDark/65 backdrop-blur-2xl border border-tg-borderDark/45 rounded-3xl shadow-2xl p-6 sm:p-9 relative z-10"
+      >
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 bg-tg-blue/10 rounded-full flex items-center justify-center text-tg-blue mb-4 border border-tg-blue/20">
-            <LockOutlinedIcon fontSize="large" />
-          </div>
+          <motion.div
+            initial={{ scale: 0.8, rotate: -15 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 200, delay: 0.15 }}
+            className="w-16 h-16 bg-gradient-to-tr from-tg-blue/15 to-tg-blue/30 rounded-2xl flex items-center justify-center text-tg-blue mb-4 border border-tg-blue/30 shadow-inner"
+          >
+            <LockOutlinedIcon fontSize="medium" />
+          </motion.div>
           <h2 className="text-2xl font-bold text-tg-textDefault tracking-tight">Sign In</h2>
-          <p className="text-xs text-tg-textMuted mt-1">Enterprise Internal Office Chat</p>
+          <p className="text-xs text-tg-textMuted mt-1.5 font-medium tracking-wide">Enterprise Internal Office Chat</p>
         </div>
 
         {localError && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-lg mb-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3.5 rounded-2xl mb-6 text-center font-medium"
+          >
             {localError}
-          </div>
+          </motion.div>
         )}
         
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-lg mb-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3.5 rounded-2xl mb-6 text-center font-medium"
+          >
             {error}
-          </div>
+          </motion.div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-xs font-semibold text-tg-textMuted mb-1.5 uppercase tracking-wide">
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-tg-textMuted uppercase tracking-wider ml-1">
               Email or Username
             </label>
             <input
@@ -95,13 +114,13 @@ export const Login = () => {
               value={formData.identity}
               onChange={handleChange}
               required
-              placeholder="e.g. employee@company.com"
-              className="w-full px-4 py-2.5 bg-tg-bgDark border border-tg-borderDark rounded-xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-sm placeholder-tg-textMuted transition-all"
+              placeholder="employee@company.com"
+              className="w-full px-4 py-3 bg-tg-bgDark/80 border border-tg-borderDark rounded-2xl focus:border-tg-blue focus:ring-1 focus:ring-tg-blue/30 focus:outline-none text-tg-textDefault text-sm placeholder-tg-textMuted/60 transition-all shadow-inner"
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-tg-textMuted mb-1.5 uppercase tracking-wide">
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-tg-textMuted uppercase tracking-wider ml-1">
               Password
             </label>
             <input
@@ -111,32 +130,32 @@ export const Login = () => {
               onChange={handleChange}
               required
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 bg-tg-bgDark border border-tg-borderDark rounded-xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-sm placeholder-tg-textMuted transition-all"
+              className="w-full px-4 py-3 bg-tg-bgDark/80 border border-tg-borderDark rounded-2xl focus:border-tg-blue focus:ring-1 focus:ring-tg-blue/30 focus:outline-none text-tg-textDefault text-sm placeholder-tg-textMuted/60 transition-all shadow-inner"
             />
           </div>
 
-          <div className="flex items-center justify-between text-xs py-1">
+          <div className="flex items-center justify-between text-xs py-1.5 font-medium px-1">
             <label className="flex items-center text-tg-textMuted cursor-pointer select-none">
               <input
                 type="checkbox"
                 name="rememberMe"
                 checked={formData.rememberMe}
                 onChange={handleChange}
-                className="w-4 h-4 rounded bg-tg-bgDark border-tg-borderDark text-tg-blue focus:ring-tg-blue mr-2 cursor-pointer"
+                className="w-4.5 h-4.5 rounded-lg bg-tg-bgDark border-tg-borderDark text-tg-blue focus:ring-tg-blue/50 mr-2.5 cursor-pointer transition-all"
               />
               Remember Me
             </label>
             <Link
               to="/forgot-password"
-              className="text-tg-blue hover:text-tg-lightBlue font-medium transition"
+              className="text-tg-blue hover:text-tg-lightBlue font-semibold transition-all hover:underline"
             >
               Forgot Password?
             </Link>
           </div>
 
           {/* CAPTCHA Protection */}
-          <div className="bg-tg-bgDark/50 p-4 border border-tg-borderDark rounded-xl space-y-3">
-            <label className="block text-[11px] font-semibold text-tg-textMuted uppercase tracking-wide">
+          <div className="bg-tg-bgDark/40 p-4.5 border border-tg-borderDark/60 rounded-2xl space-y-3 shadow-inner">
+            <label className="block text-[10px] font-bold text-tg-textMuted uppercase tracking-wider ml-0.5">
               Security Verification
             </label>
             <Captcha onChange={handleCaptchaChange} />
@@ -146,30 +165,32 @@ export const Login = () => {
               onChange={(e) => setCaptchaInput(e.target.value)}
               required
               placeholder="Enter CAPTCHA characters"
-              className="w-full px-3 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-lg focus:border-tg-blue focus:outline-none text-tg-textDefault text-xs transition"
+              className="w-full px-4 py-2.5 bg-tg-bgDark/80 border border-tg-borderDark rounded-xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-xs transition"
             />
           </div>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-tg-blue to-tg-darkBlue hover:brightness-110 active:scale-[0.98] text-white rounded-xl font-semibold text-sm transition-all shadow-lg shadow-tg-blue/20 disabled:opacity-50 disabled:pointer-events-none mt-2"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-tg-blue to-tg-darkBlue hover:brightness-110 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-tg-blue/15 disabled:opacity-50 disabled:pointer-events-none mt-4 cursor-pointer"
           >
             {loading ? 'Authenticating...' : 'Sign In'}
-            <ArrowForwardIcon fontSize="small" />
-          </button>
+            <ArrowForwardIcon fontSize="inherit" style={{ fontSize: '14px' }} />
+          </motion.button>
         </form>
 
-        <div className="text-center mt-6 text-xs text-tg-textMuted">
+        <div className="text-center mt-7 text-xs text-tg-textMuted font-medium">
           New on office communication?{' '}
           <Link
             to="/register"
-            className="text-tg-blue hover:underline font-semibold"
+            className="text-tg-blue hover:underline font-bold transition-all ml-0.5"
           >
             Create an Account
           </Link>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

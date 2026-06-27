@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { setLeftSidebarTab, toggleTheme, setAlert } from '../../redux/uiSlice.js';
+import { motion, AnimatePresence } from 'framer-motion';
+import { setLeftSidebarTab, setTheme, setAlert } from '../../redux/uiSlice.js';
 import { setContacts, setMyGroups, setMyChannels, addGroup, addChannel, setActiveChat } from '../../redux/chatSlice.js';
 import { logoutUser, updateUserProfile } from '../../redux/authSlice.js';
 import { setMyBots, addBot, removeBotState, updateBotTokenState } from '../../redux/botSlice.js';
@@ -23,6 +24,9 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AddIcon from '@mui/icons-material/Add';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import LinkIcon from '@mui/icons-material/Link';
+import EditIcon from '@mui/icons-material/Edit';
+import PaletteIcon from '@mui/icons-material/Palette';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 export const Sidebar = () => {
   const dispatch = useDispatch();
@@ -58,6 +62,8 @@ export const Sidebar = () => {
   const [botWelcome, setBotWelcome] = useState('');
   const [botTokenOutput, setBotTokenOutput] = useState('');
 
+  const [loading, setLoading] = useState(true);
+
   // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
@@ -67,12 +73,10 @@ export const Sidebar = () => {
 
         const groupsRes = await api.get('/group');
         dispatch(setMyGroups(groupsRes.data));
-        // Join group rooms automatically on startup
         groupsRes.data.forEach(g => joinRoom(g._id));
 
         const channelsRes = await api.get('/channel');
         dispatch(setMyChannels(channelsRes.data));
-        // Join channel rooms automatically on startup
         channelsRes.data.forEach(c => joinRoom(c._id));
 
         try {
@@ -83,6 +87,8 @@ export const Sidebar = () => {
         }
       } catch (err) {
         console.error('Failed to load sidebar data', err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -90,7 +96,7 @@ export const Sidebar = () => {
 
   const handleSelectChat = (chat, type) => {
     dispatch(setActiveChat({ chat, type }));
-    joinRoom(chat._id); // Ensure we join room
+    joinRoom(chat._id);
   };
 
   const handleCreateGroupSubmit = async (e) => {
@@ -249,65 +255,63 @@ export const Sidebar = () => {
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const tabItems = [
+    { id: 'chats', icon: <ChatIcon fontSize="small" />, label: 'Chats' },
+    { id: 'groups', icon: <GroupsIcon fontSize="small" />, label: 'Groups' },
+    { id: 'channels', icon: <CampaignIcon fontSize="small" />, label: 'Channels' },
+    { id: 'bots', icon: <SmartToyIcon fontSize="small" />, label: 'Bots' },
+    { id: 'contacts', icon: <ContactsIcon fontSize="small" />, label: 'Corporate' },
+    { id: 'settings', icon: <SettingsIcon fontSize="small" />, label: 'Settings' }
+  ];
+
   return (
     <div className="w-full h-full flex bg-tg-bgSidebarDark border-r border-tg-borderDark flex-shrink-0 relative overflow-hidden">
       {/* Mini tabs Sidebar */}
-      <div className="w-[60px] h-full bg-tg-bgDark flex flex-col items-center justify-between py-4 border-r border-tg-borderDark flex-shrink-0 z-20">
-        <div className="flex flex-col gap-5 items-center">
+      <div className="w-[64px] h-full bg-tg-bgDark/45 backdrop-blur-md flex flex-col items-center justify-between py-5 border-r border-tg-borderDark/40 flex-shrink-0 z-20">
+        <div className="flex flex-col gap-6 items-center w-full">
           {/* User profile bubble */}
-          <div
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => dispatch(setLeftSidebarTab('settings'))}
-            className="w-9 h-9 rounded-full bg-tg-blue overflow-hidden flex items-center justify-center border border-tg-blue/20 cursor-pointer shadow-md"
+            className="w-10 h-10 rounded-2xl bg-tg-blue overflow-hidden flex items-center justify-center border border-tg-blue/20 cursor-pointer shadow-md"
           >
             {user?.profilePhoto ? (
               <img src={getFileUrl(user.profilePhoto)} alt="Me" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-white text-xs font-bold">{(user?.firstName || user?.username)?.[0]?.toUpperCase()}</span>
+              <span className="text-white text-sm font-bold">{(user?.firstName || user?.username)?.[0]?.toUpperCase()}</span>
             )}
-          </div>
+          </motion.div>
 
-          <button
-            onClick={() => dispatch(setLeftSidebarTab('chats'))}
-            className={`p-2 rounded-xl transition ${leftSidebarTab === 'chats' ? 'bg-tg-blue text-white shadow-lg shadow-tg-blue/20' : 'text-tg-textMuted hover:bg-tg-bgDark'}`}
-          >
-            <ChatIcon fontSize="small" />
-          </button>
-          <button
-            onClick={() => dispatch(setLeftSidebarTab('groups'))}
-            className={`p-2 rounded-xl transition ${leftSidebarTab === 'groups' ? 'bg-tg-blue text-white shadow-lg shadow-tg-blue/20' : 'text-tg-textMuted hover:bg-tg-bgDark'}`}
-          >
-            <GroupsIcon fontSize="small" />
-          </button>
-          <button
-            onClick={() => dispatch(setLeftSidebarTab('channels'))}
-            className={`p-2 rounded-xl transition ${leftSidebarTab === 'channels' ? 'bg-tg-blue text-white shadow-lg shadow-tg-blue/20' : 'text-tg-textMuted hover:bg-tg-bgDark'}`}
-          >
-            <CampaignIcon fontSize="small" />
-          </button>
-          <button
-            onClick={() => dispatch(setLeftSidebarTab('bots'))}
-            className={`p-2 rounded-xl transition ${leftSidebarTab === 'bots' ? 'bg-tg-blue text-white shadow-lg shadow-tg-blue/20' : 'text-tg-textMuted hover:bg-tg-bgDark'}`}
-          >
-            <SmartToyIcon fontSize="small" />
-          </button>
-          <button
-            onClick={() => dispatch(setLeftSidebarTab('contacts'))}
-            className={`p-2 rounded-xl transition ${leftSidebarTab === 'contacts' ? 'bg-tg-blue text-white shadow-lg shadow-tg-blue/20' : 'text-tg-textMuted hover:bg-tg-bgDark'}`}
-          >
-            <ContactsIcon fontSize="small" />
-          </button>
+          <div className="flex flex-col gap-3 w-full px-2 relative">
+            {tabItems.map((tab) => {
+              const active = leftSidebarTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => dispatch(setLeftSidebarTab(tab.id))}
+                  className={`p-3 rounded-2xl transition-all duration-300 relative flex items-center justify-center ${active ? 'text-white' : 'text-tg-textMuted hover:text-tg-textDefault hover:bg-tg-bgDark/60'}`}
+                  title={tab.label}
+                >
+                  {active && (
+                    <motion.div
+                      layoutId="sidebarActiveIndicator"
+                      className="absolute inset-0 bg-tg-blue rounded-2xl -z-10 shadow-lg shadow-tg-blue/20"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  {tab.icon}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex flex-col gap-4 items-center">
           <button
-            onClick={() => dispatch(toggleTheme())}
-            className="p-2 rounded-xl text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition"
-          >
-            {theme === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-          </button>
-          <button
             onClick={() => dispatch(logoutUser())}
-            className="p-2 rounded-xl text-red-400 hover:bg-red-500/10 transition"
+            className="p-3 rounded-2xl text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer active:scale-95"
+            title="Log Out"
           >
             <LogoutIcon fontSize="small" />
           </button>
@@ -317,269 +321,317 @@ export const Sidebar = () => {
       {/* Main Tab Content panel */}
       <div className="flex-grow h-full flex flex-col z-10">
         {/* Search header bar */}
-        <div className="p-4 border-b border-tg-borderDark/80">
-          <div className="relative">
-            <SearchIcon className="absolute left-3 top-2.5 text-gray-500" fontSize="inherit" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-xs placeholder-tg-textMuted"
-            />
+        {leftSidebarTab !== 'settings' && (
+          <div className="p-4 border-b border-tg-borderDark/50">
+            <div className="relative">
+              <SearchIcon className="absolute left-3 top-3 text-tg-textMuted" fontSize="inherit" style={{ fontSize: '14px' }} />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-tg-bgDark/60 border border-tg-borderDark/80 rounded-2xl focus:border-tg-blue focus:ring-1 focus:ring-tg-blue/20 focus:outline-none text-tg-textDefault text-xs placeholder-tg-textMuted/60 transition-all shadow-inner"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Tab Lists */}
-        <div className="flex-grow overflow-y-auto p-2 space-y-1">
-          {leftSidebarTab === 'chats' && (
-            <>
-              <div className="text-[10px] uppercase font-bold text-tg-textMuted px-3 mb-2 tracking-wider">
-                Recent Conversations
-              </div>
-              {filteredContacts.map(c => (
-                <div
-                  key={c._id}
-                  onClick={() => handleSelectChat(c, 'user')}
-                  className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition ${activeChat?._id === c._id && activeChat?.username ? 'bg-tg-blue text-white' : 'hover:bg-tg-bgDark'}`}
-                >
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-xl bg-tg-bgDark overflow-hidden flex items-center justify-center border border-tg-borderDark text-tg-textDefault">
-                      {c.profilePhoto ? (
-                        <img src={getFileUrl(c.profilePhoto)} alt={c.firstName} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-sm font-semibold">{(c.firstName || c.username)[0].toUpperCase()}</span>
-                      )}
-                    </div>
-                    {c.isOnline && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-tg-bgSidebarDark rounded-full" />
-                    )}
-                  </div>
-                  <div className="flex-grow overflow-hidden">
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-xs font-semibold truncate leading-tight">
-                        {c.firstName || c.lastName ? `${c.firstName} ${c.lastName}` : `@${c.username}`}
-                      </span>
-                    </div>
-                    <p className={`text-[10px] truncate mt-0.5 ${activeChat?._id === c._id && activeChat?.username ? 'text-blue-100' : 'text-tg-textMuted'}`}>
-                      {c.department} • {c.employeeId}
-                    </p>
+        <div className="flex-grow overflow-y-auto p-3 space-y-1">
+          {loading ? (
+            // Skeleton Loader lists
+            <div className="space-y-4 p-2">
+              <div className="h-2.5 w-24 bg-tg-borderDark rounded skeleton mb-4" />
+              {[1, 2, 3, 4].map(idx => (
+                <div key={idx} className="flex items-center gap-3 py-1">
+                  <div className="w-10 h-10 rounded-2xl bg-tg-borderDark skeleton flex-shrink-0" />
+                  <div className="flex-grow space-y-2">
+                    <div className="h-3 w-1/2 bg-tg-borderDark rounded skeleton" />
+                    <div className="h-2.5 w-3/4 bg-tg-borderDark rounded skeleton" />
                   </div>
                 </div>
               ))}
-            </>
-          )}
-
-          {leftSidebarTab === 'groups' && (
-            <>
-              <div className="flex justify-between items-center px-3 mb-2">
-                <span className="text-[10px] uppercase font-bold text-tg-textMuted tracking-wider">My Groups</span>
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => setShowJoinGroup(true)}
-                    className="p-1 rounded bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition"
-                    title="Join Group via Link"
-                  >
-                    <LinkIcon fontSize="inherit" style={{ transform: 'rotate(-45deg)' }} />
-                  </button>
-                  <button
-                    onClick={() => setShowCreateGroup(true)}
-                    className="p-1 rounded bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition"
-                    title="Create Group"
-                  >
-                    <AddIcon fontSize="inherit" />
-                  </button>
-                </div>
-              </div>
-
-              {filteredGroups.map(g => (
-                <div
-                  key={g._id}
-                  onClick={() => handleSelectChat(g, 'group')}
-                  className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition ${activeChat?._id === g._id && !activeChat?.username ? 'bg-tg-blue text-white' : 'hover:bg-tg-bgDark'}`}
+            </div>
+          ) : (
+            <AnimatePresence mode="wait">
+              {leftSidebarTab === 'chats' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-1"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 overflow-hidden flex items-center justify-center text-white font-bold border border-indigo-500/20">
-                    {g.avatar ? (
-                      <img src={getFileUrl(g.avatar)} alt={g.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span>{g.name[0]}</span>
-                    )}
+                  <div className="text-[10px] uppercase font-bold text-tg-textMuted px-2 mb-3 tracking-wider">
+                    Recent Conversations
                   </div>
-                  <div className="flex-grow overflow-hidden">
-                    <span className="text-xs font-semibold truncate block leading-tight">{g.name}</span>
-                    <p className={`text-[10px] truncate mt-0.5 ${activeChat?._id === g._id && !activeChat?.username ? 'text-indigo-100' : 'text-tg-textMuted'}`}>
-                      {g.members.length} members • {g.type}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-
-          {leftSidebarTab === 'channels' && (
-            <>
-              <div className="flex justify-between items-center px-3 mb-2">
-                <span className="text-[10px] uppercase font-bold text-tg-textMuted tracking-wider">Channels</span>
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => setShowJoinChannel(true)}
-                    className="p-1 rounded bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition"
-                    title="Join Channel via Link"
-                  >
-                    <LinkIcon fontSize="inherit" style={{ transform: 'rotate(-45deg)' }} />
-                  </button>
-                  <button
-                    onClick={() => setShowCreateChannel(true)}
-                    className="p-1 rounded bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition"
-                    title="Create Channel"
-                  >
-                    <AddIcon fontSize="inherit" />
-                  </button>
-                </div>
-              </div>
-
-              {filteredChannels.map(c => (
-                <div
-                  key={c._id}
-                  onClick={() => handleSelectChat(c, 'channel')}
-                  className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition ${activeChat?._id === c._id ? 'bg-tg-blue text-white' : 'hover:bg-tg-bgDark'}`}
-                >
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 overflow-hidden flex items-center justify-center text-white font-bold border border-amber-500/20">
-                    {c.avatar ? (
-                      <img src={getFileUrl(c.avatar)} alt={c.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span>{c.name[0]}</span>
-                    )}
-                  </div>
-                  <div className="flex-grow overflow-hidden">
-                    <span className="text-xs font-semibold truncate block leading-tight">{c.name}</span>
-                    <p className={`text-[10px] truncate mt-0.5 ${activeChat?._id === c._id ? 'text-amber-100' : 'text-tg-textMuted'}`}>
-                      {c.subscribers?.length || 0} subscribers
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-
-          {leftSidebarTab === 'bots' && (
-            <>
-              <div className="flex justify-between items-center px-3 mb-2">
-                <span className="text-[10px] uppercase font-bold text-tg-textMuted tracking-wider">Bot Management</span>
-                <button
-                  onClick={() => setShowCreateBot(true)}
-                  className="p-1 rounded bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition flex items-center justify-center"
-                  title="Create Bot Agent"
-                >
-                  <AddIcon fontSize="inherit" />
-                </button>
-              </div>
-
-              {/* Bot List */}
-              <div className="space-y-2.5 overflow-y-auto max-h-[calc(100vh-120px)] p-2">
-                {myBots && myBots.length > 0 ? (
-                  myBots.map((bot) => (
-                    <div
-                      key={bot._id}
-                      className="p-3 bg-tg-bgDark/40 border border-tg-borderDark/80 rounded-xl space-y-2 hover:bg-tg-bgDark/60 transition text-left"
+                  {filteredContacts.map(c => (
+                    <motion.div
+                      key={c._id}
+                      onClick={() => handleSelectChat(c, 'user')}
+                      whileHover={{ x: 2 }}
+                      className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all ${activeChat?._id === c._id && activeChat?.username ? 'bg-tg-blue text-white shadow-lg shadow-tg-blue/15' : 'hover:bg-tg-bgDark/55 border border-transparent hover:border-tg-borderDark/40'}`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-xs font-semibold text-tg-textDefault block leading-tight">
-                            {bot.name}
-                          </span>
-                          <span className="text-[9px] text-tg-textMuted font-mono">
-                            @{bot.username}
-                          </span>
+                      <div className="relative flex-shrink-0">
+                        <div className="w-10 h-10 rounded-2xl bg-tg-bgDark overflow-hidden flex items-center justify-center border border-tg-borderDark/60 text-tg-textDefault font-bold">
+                          {c.profilePhoto ? (
+                            <img src={getFileUrl(c.profilePhoto)} alt={c.firstName} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-sm">{(c.firstName || c.username)[0].toUpperCase()}</span>
+                          )}
                         </div>
-                        <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-green-500/10 text-green-500 border border-green-500/20">
-                          Active
+                        {c.isOnline && (
+                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-tg-bgSidebarDark rounded-full shadow-sm" />
+                        )}
+                      </div>
+                      <div className="flex-grow overflow-hidden text-left">
+                        <span className="text-xs font-semibold truncate leading-tight block">
+                          {c.firstName || c.lastName ? `${c.firstName} ${c.lastName}` : `@${c.username}`}
                         </span>
+                        <p className={`text-[10px] truncate mt-0.5 ${activeChat?._id === c._id && activeChat?.username ? 'text-blue-100' : 'text-tg-textMuted'}`}>
+                          {c.department} • {c.employeeId}
+                        </p>
                       </div>
-                      
-                      <div className="text-[10px] text-tg-textMuted line-clamp-2 leading-relaxed">
-                        <strong className="text-tg-textDefault">Welcome:</strong> {bot.welcomeMessage || 'None'}
-                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
 
-                      {/* Token Section */}
-                      <div className="bg-tg-bgDark border border-tg-borderDark rounded-lg p-2 flex flex-col gap-1 text-[10px]">
-                        <span className="text-[8px] uppercase text-tg-textMuted font-bold tracking-wider">API Token</span>
-                        <div className="flex items-center justify-between gap-1.5 font-mono text-[9px] break-all select-all text-tg-blue">
-                          <span className="truncate flex-grow">{bot.token}</span>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(bot.token);
-                              dispatch(setAlert({ message: 'Token copied to clipboard!', severity: 'success' }));
-                            }}
-                            className="px-1.5 py-0.5 bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue font-bold rounded flex-shrink-0"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Bot Actions */}
-                      <div className="flex gap-2 pt-1 border-t border-tg-borderDark/50">
-                        <button
-                          onClick={() => handleRegenerateToken(bot._id)}
-                          className="flex-1 py-1 bg-tg-bgDark hover:bg-tg-bgDark/80 border border-tg-borderDark rounded-lg text-[9px] font-semibold text-tg-textDefault transition text-center"
-                        >
-                          Regenerate
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBot(bot._id)}
-                          className="flex-1 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-[9px] font-semibold text-red-400 hover:text-red-500 transition text-center"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-3 bg-tg-bgDark border border-tg-borderDark rounded-xl m-2 space-y-3 text-center">
-                    <p className="text-[10px] text-tg-textMuted leading-normal">
-                      You haven't created any bot agents yet. Click the "+" button above to generate a new bot.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {leftSidebarTab === 'contacts' && (
-            <>
-              <div className="text-[10px] uppercase font-bold text-tg-textMuted px-3 mb-2 tracking-wider">
-                Corporate Directory
-              </div>
-              {filteredContacts.map(c => (
-                <div
-                  key={c._id}
-                  onClick={() => handleSelectChat(c, 'user')}
-                  className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-tg-bgDark transition"
+              {leftSidebarTab === 'groups' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-1"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-tg-bgDark overflow-hidden flex items-center justify-center text-tg-textDefault border border-tg-borderDark relative">
-                    {c.profilePhoto ? (
-                      <img src={getFileUrl(c.profilePhoto)} alt={c.firstName} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-sm font-semibold">{(c.firstName || c.username)[0].toUpperCase()}</span>
-                    )}
-                    {c.isOnline && (
-                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-tg-bgSidebarDark rounded-full" />
-                    )}
+                  <div className="flex justify-between items-center px-2 mb-3">
+                    <span className="text-[10px] uppercase font-bold text-tg-textMuted tracking-wider">My Groups</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowJoinGroup(true)}
+                        className="p-1.5 rounded-xl bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition cursor-pointer"
+                        title="Join Group"
+                      >
+                        <LinkIcon fontSize="inherit" style={{ transform: 'rotate(-45deg)' }} />
+                      </button>
+                      <button
+                        onClick={() => setShowCreateGroup(true)}
+                        className="p-1.5 rounded-xl bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition cursor-pointer"
+                        title="Create Group"
+                      >
+                        <AddIcon fontSize="inherit" />
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-xs font-semibold text-tg-textDefault block">
-                      {c.firstName || c.lastName ? `${c.firstName} ${c.lastName}` : `@${c.username}`}
-                    </span>
-                    <span className="text-[10px] text-tg-textMuted">{c.department} • {c.employeeId}</span>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
 
-          {leftSidebarTab === 'settings' && (
-            <SettingsPanel />
+                  {filteredGroups.map(g => (
+                    <motion.div
+                      key={g._id}
+                      onClick={() => handleSelectChat(g, 'group')}
+                      whileHover={{ x: 2 }}
+                      className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all ${activeChat?._id === g._id && !activeChat?.username ? 'bg-tg-blue text-white shadow-lg shadow-tg-blue/15' : 'hover:bg-tg-bgDark/55 border border-transparent hover:border-tg-borderDark/40'}`}
+                    >
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-400 overflow-hidden flex items-center justify-center text-white font-bold border border-indigo-500/20 flex-shrink-0">
+                        {g.avatar ? (
+                          <img src={getFileUrl(g.avatar)} alt={g.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{g.name[0].toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="flex-grow overflow-hidden text-left">
+                        <span className="text-xs font-semibold truncate block leading-tight">{g.name}</span>
+                        <p className={`text-[10px] truncate mt-0.5 ${activeChat?._id === g._id && !activeChat?.username ? 'text-indigo-100' : 'text-tg-textMuted'}`}>
+                          {g.members.length} members • {g.type}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+
+              {leftSidebarTab === 'channels' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-1"
+                >
+                  <div className="flex justify-between items-center px-2 mb-3">
+                    <span className="text-[10px] uppercase font-bold text-tg-textMuted tracking-wider">Channels</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowJoinChannel(true)}
+                        className="p-1.5 rounded-xl bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition cursor-pointer"
+                        title="Join Channel"
+                      >
+                        <LinkIcon fontSize="inherit" style={{ transform: 'rotate(-45deg)' }} />
+                      </button>
+                      <button
+                        onClick={() => setShowCreateChannel(true)}
+                        className="p-1.5 rounded-xl bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition cursor-pointer"
+                        title="Create Channel"
+                      >
+                        <AddIcon fontSize="inherit" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {filteredChannels.map(c => (
+                    <motion.div
+                      key={c._id}
+                      onClick={() => handleSelectChat(c, 'channel')}
+                      whileHover={{ x: 2 }}
+                      className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all ${activeChat?._id === c._id ? 'bg-tg-blue text-white shadow-lg shadow-tg-blue/15' : 'hover:bg-tg-bgDark/55 border border-transparent hover:border-tg-borderDark/40'}`}
+                    >
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 overflow-hidden flex items-center justify-center text-white font-bold border border-amber-500/20 flex-shrink-0">
+                        {c.avatar ? (
+                          <img src={getFileUrl(c.avatar)} alt={c.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{c.name[0].toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="flex-grow overflow-hidden text-left">
+                        <span className="text-xs font-semibold truncate block leading-tight">{c.name}</span>
+                        <p className={`text-[10px] truncate mt-0.5 ${activeChat?._id === c._id ? 'text-amber-100' : 'text-tg-textMuted'}`}>
+                          {c.subscribers?.length || 0} subscribers • {c.type}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+
+              {leftSidebarTab === 'bots' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-3"
+                >
+                  <div className="flex justify-between items-center px-2">
+                    <span className="text-[10px] uppercase font-bold text-tg-textMuted tracking-wider">Bot Agents</span>
+                    <button
+                      onClick={() => setShowCreateBot(true)}
+                      className="p-1.5 rounded-xl bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition cursor-pointer"
+                      title="Create Bot"
+                    >
+                      <AddIcon fontSize="inherit" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 px-1">
+                    {myBots.length > 0 ? (
+                      myBots.map(bot => (
+                        <div
+                          key={bot._id}
+                          className="p-3 bg-tg-bgDark/40 border border-tg-borderDark/60 rounded-2xl text-left space-y-3 shadow-sm"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-rose-400 overflow-hidden flex items-center justify-center text-white font-bold border border-rose-500/20 flex-shrink-0">
+                              <SmartToyIcon fontSize="small" />
+                            </div>
+                            <div className="overflow-hidden">
+                              <span className="text-xs font-bold text-tg-textDefault block truncate">{bot.name}</span>
+                              <span className="text-[10px] text-tg-textMuted font-mono">@{bot.username}</span>
+                            </div>
+                          </div>
+
+                          <div className="text-[10px] text-tg-textMuted line-clamp-2 leading-relaxed bg-black/10 p-2 rounded-xl">
+                            <strong className="text-tg-textDefault mr-1">Greeting:</strong> {bot.welcomeMessage || 'None'}
+                          </div>
+
+                          {/* Token Section */}
+                          <div className="bg-tg-bgDark border border-tg-borderDark/60 rounded-xl p-2.5 flex flex-col gap-1 text-[10px] shadow-inner">
+                            <span className="text-[8px] uppercase text-tg-textMuted font-bold tracking-wider">API Token</span>
+                            <div className="flex items-center justify-between gap-1.5 font-mono text-[9px] break-all select-all text-tg-blue">
+                              <span className="truncate flex-grow">{bot.token}</span>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(bot.token);
+                                  dispatch(setAlert({ message: 'Token copied to clipboard!', severity: 'success' }));
+                                }}
+                                className="px-1.5 py-0.5 bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue font-bold rounded flex-shrink-0"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Bot Actions */}
+                          <div className="flex gap-2 pt-1 border-t border-tg-borderDark/50">
+                            <button
+                              onClick={() => handleRegenerateToken(bot._id)}
+                              className="flex-1 py-1 bg-tg-bgDark/80 hover:bg-tg-bgDark/60 border border-tg-borderDark/60 rounded-xl text-[9px] font-semibold text-tg-textDefault transition text-center cursor-pointer"
+                            >
+                              Regenerate
+                            </button>
+                            <button
+                              onClick={() => handleDeleteBot(bot._id)}
+                              className="flex-1 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-[9px] font-semibold text-red-400 hover:text-red-500 transition text-center cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 bg-tg-bgDark/35 border border-tg-borderDark/60 rounded-2xl text-center">
+                        <p className="text-[10px] text-tg-textMuted leading-normal">
+                          You haven't created any bot agents yet. Click the "+" button above to generate a new bot.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {leftSidebarTab === 'contacts' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-1"
+                >
+                  <div className="text-[10px] uppercase font-bold text-tg-textMuted px-2 mb-3 tracking-wider">
+                    Corporate Directory
+                  </div>
+                  {filteredContacts.map(c => (
+                    <motion.div
+                      key={c._id}
+                      onClick={() => handleSelectChat(c, 'user')}
+                      whileHover={{ x: 2 }}
+                      className="flex items-center gap-3 p-3 rounded-2xl cursor-pointer hover:bg-tg-bgDark/55 border border-transparent hover:border-tg-borderDark/40 transition-all"
+                    >
+                      <div className="w-10 h-10 rounded-2xl bg-tg-bgDark overflow-hidden flex items-center justify-center text-tg-textDefault border border-tg-borderDark/60 relative flex-shrink-0 font-bold">
+                        {c.profilePhoto ? (
+                          <img src={getFileUrl(c.profilePhoto)} alt={c.firstName} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-sm">{(c.firstName || c.username)[0].toUpperCase()}</span>
+                        )}
+                        {c.isOnline && (
+                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-tg-bgSidebarDark rounded-full" />
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <span className="text-xs font-semibold text-tg-textDefault block leading-tight">
+                          {c.firstName || c.lastName ? `${c.firstName} ${c.lastName}` : `@${c.username}`}
+                        </span>
+                        <span className="text-[10px] text-tg-textMuted mt-0.5 block">{c.department} • {c.employeeId}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+
+              {leftSidebarTab === 'settings' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <SettingsPanel />
+                </motion.div>
+              )}
+            </AnimatePresence>
           )}
         </div>
       </div>
@@ -599,7 +651,7 @@ export const Sidebar = () => {
                 required
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
+                className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
               />
             </div>
             <div>
@@ -607,7 +659,7 @@ export const Sidebar = () => {
               <textarea
                 value={groupDesc}
                 onChange={(e) => setGroupDesc(e.target.value)}
-                className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault h-16 focus:outline-none focus:border-tg-blue"
+                className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault h-16 focus:outline-none focus:border-tg-blue resize-none"
               />
             </div>
             <div>
@@ -615,7 +667,7 @@ export const Sidebar = () => {
               <select
                 value={groupType}
                 onChange={(e) => setGroupType(e.target.value)}
-                className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
+                className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
               >
                 <option value="private">Private (Invite Only)</option>
                 <option value="public">Public</option>
@@ -625,7 +677,7 @@ export const Sidebar = () => {
             {/* Contacts checkboxes */}
             <div>
               <label className="block text-[10px] uppercase text-tg-textMuted font-bold mb-2">Select Members</label>
-              <div className="max-h-40 overflow-y-auto border border-tg-borderDark rounded-lg p-2 bg-tg-bgDark space-y-1.5">
+              <div className="max-h-40 overflow-y-auto border border-tg-borderDark rounded-xl p-2 bg-tg-bgDark space-y-1.5">
                 {contacts.map(c => (
                   <label key={c._id} className="flex items-center justify-between text-xs text-tg-textMuted hover:text-tg-textDefault cursor-pointer select-none">
                     <span>{c.firstName} {c.lastName}</span>
@@ -642,7 +694,7 @@ export const Sidebar = () => {
 
             <button
               type="submit"
-              className="w-full py-2 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-lg transition"
+              className="w-full py-2.5 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-xl transition shadow-md cursor-pointer"
             >
               Create Group
             </button>
@@ -665,7 +717,7 @@ export const Sidebar = () => {
                 required
                 value={channelName}
                 onChange={(e) => setChannelName(e.target.value)}
-                className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
+                className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
               />
             </div>
             <div>
@@ -673,7 +725,7 @@ export const Sidebar = () => {
               <textarea
                 value={channelDesc}
                 onChange={(e) => setChannelDesc(e.target.value)}
-                className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault h-16 focus:outline-none focus:border-tg-blue"
+                className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault h-16 focus:outline-none focus:border-tg-blue resize-none"
               />
             </div>
             <div>
@@ -681,7 +733,7 @@ export const Sidebar = () => {
               <select
                 value={channelType}
                 onChange={(e) => setChannelType(e.target.value)}
-                className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
+                className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
               >
                 <option value="private">Private (Invite Link Only)</option>
                 <option value="public">Public</option>
@@ -690,7 +742,7 @@ export const Sidebar = () => {
 
             <button
               type="submit"
-              className="w-full py-2 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-lg transition"
+              className="w-full py-2.5 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-xl transition shadow-md cursor-pointer"
             >
               Create Channel
             </button>
@@ -707,7 +759,7 @@ export const Sidebar = () => {
           </div>
           
           {botTokenOutput ? (
-            <div className="space-y-4 text-center">
+            <div className="space-y-4 text-center py-6">
               <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center text-green-500 mx-auto">
                 <QrCode2Icon fontSize="large" />
               </div>
@@ -729,7 +781,7 @@ export const Sidebar = () => {
                   placeholder="e.g. Git Notifier"
                   value={botName}
                   onChange={(e) => setBotName(e.target.value)}
-                  className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
+                  className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
                 />
               </div>
               <div>
@@ -740,7 +792,7 @@ export const Sidebar = () => {
                   placeholder="e.g. git_notifier_bot"
                   value={botUsername}
                   onChange={(e) => setBotUsername(e.target.value)}
-                  className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
+                  className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
                 />
               </div>
               <div>
@@ -749,13 +801,13 @@ export const Sidebar = () => {
                   value={botWelcome}
                   placeholder="Greeting when a user opens the chat"
                   onChange={(e) => setBotWelcome(e.target.value)}
-                  className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault h-16 focus:outline-none focus:border-tg-blue"
+                  className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault h-16 focus:outline-none focus:border-tg-blue resize-none"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-lg transition"
+                className="w-full py-2.5 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-xl transition shadow-md cursor-pointer"
               >
                 Generate Bot Token
               </button>
@@ -785,12 +837,12 @@ export const Sidebar = () => {
                 placeholder="Paste token or group join URL..."
                 value={joinLinkInput}
                 onChange={(e) => setJoinLinkInput(e.target.value)}
-                className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault placeholder-tg-textMuted focus:outline-none focus:border-tg-blue"
+                className="w-full px-3.5 py-2.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault placeholder-tg-textMuted focus:outline-none focus:border-tg-blue"
               />
             </div>
             <button
               type="submit"
-              className="w-full py-2 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-lg transition"
+              className="w-full py-2.5 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-xl transition shadow-md cursor-pointer"
             >
               Join Group
             </button>
@@ -819,12 +871,12 @@ export const Sidebar = () => {
                 placeholder="Paste token or channel join URL..."
                 value={joinLinkInput}
                 onChange={(e) => setJoinLinkInput(e.target.value)}
-                className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault placeholder-tg-textMuted focus:outline-none focus:border-tg-blue"
+                className="w-full px-3.5 py-2.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault placeholder-tg-textMuted focus:outline-none focus:border-tg-blue"
               />
             </div>
             <button
               type="submit"
-              className="w-full py-2 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-lg transition"
+              className="w-full py-2.5 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-xl transition shadow-md cursor-pointer"
             >
               Subscribe to Channel
             </button>
@@ -838,7 +890,10 @@ export const Sidebar = () => {
 const SettingsPanel = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const { theme } = useSelector((state) => state.ui);
   
+  const [settingsTab, setSettingsTab] = useState('profile'); // 'profile' | 'appearance'
+
   const [profileForm, setProfileForm] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -888,91 +943,172 @@ const SettingsPanel = () => {
     }
   };
 
+  const themesList = [
+    { id: 'light', name: 'Light', colors: ['#ffffff', '#e2e8f0', '#3b82f6'] },
+    { id: 'dark', name: 'Dark Grey', colors: ['#17212b', '#24303f', '#24a1de'] },
+    { id: 'midnight', name: 'Midnight', colors: ['#050505', '#1a1a1a', '#ffffff'] },
+    { id: 'blue', name: 'Ocean Blue', colors: ['#1c2541', '#3a506b', '#00b4d8'] },
+    { id: 'purple', name: 'Cyber Purple', colors: ['#18112d', '#2b1f4c', '#a78bfa'] },
+    { id: 'emerald', name: 'Forest Green', colors: ['#064e3b', '#065f46', '#10b981'] },
+    { id: 'corporate', name: 'Corporate', colors: ['#1e293b', '#334155', '#6366f1'] }
+  ];
+
   return (
-    <div className="p-4 text-left space-y-5 animate-slide-in">
-      <div className="text-[10px] uppercase font-bold text-tg-textMuted mb-2 tracking-wider">
-        Profile Settings
-      </div>
-      <form onSubmit={handleSaveProfile} className="space-y-4">
-        {/* Photo Upload */}
-        <div className="flex flex-col items-center">
-          <div className="w-16 h-16 rounded-full bg-tg-bgDark border-2 border-tg-borderDark overflow-hidden flex items-center justify-center relative shadow-inner">
-            {photoPreview ? (
-              <img src={getFileUrl(photoPreview)} alt="" className="w-full h-full object-cover" />
-            ) : user?.profilePhoto ? (
-              <img src={getFileUrl(user.profilePhoto)} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xl font-bold text-tg-blue">{(user?.firstName || user?.username)?.[0]?.toUpperCase()}</span>
-            )}
-          </div>
-          <label className="text-[10px] text-tg-blue hover:underline cursor-pointer mt-1.5 font-semibold">
-            Change Photo
-            <input type="file" onChange={handlePhotoUpload} className="hidden" accept="image/*" />
-          </label>
-        </div>
-
-        <div>
-          <label className="block text-[9px] uppercase text-tg-textMuted font-bold mb-1 tracking-wider">First Name</label>
-          <input
-            type="text"
-            name="firstName"
-            value={profileForm.firstName}
-            onChange={handleProfileChange}
-            className="w-full px-3 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
-          />
-        </div>
-        <div>
-          <label className="block text-[9px] uppercase text-tg-textMuted font-bold mb-1 tracking-wider">Last Name</label>
-          <input
-            type="text"
-            name="lastName"
-            value={profileForm.lastName}
-            onChange={handleProfileChange}
-            className="w-full px-3 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
-          />
-        </div>
-        <div>
-          <label className="block text-[9px] uppercase text-tg-textMuted font-bold mb-1 tracking-wider">Department</label>
-          <input
-            type="text"
-            name="department"
-            value={profileForm.department}
-            onChange={handleProfileChange}
-            className="w-full px-3 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
-          />
-        </div>
-        <div>
-          <label className="block text-[9px] uppercase text-tg-textMuted font-bold mb-1 tracking-wider">Employee ID</label>
-          <input
-            type="text"
-            name="employeeId"
-            value={profileForm.employeeId}
-            onChange={handleProfileChange}
-            className="w-full px-3 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
-          />
-        </div>
-        <div>
-          <label className="block text-[9px] uppercase text-tg-textMuted font-bold mb-1 tracking-wider">Gender</label>
-          <select
-            name="gender"
-            value={profileForm.gender}
-            onChange={handleProfileChange}
-            className="w-full px-3 py-1.5 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
-          >
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-
+    <div className="text-left space-y-4.5 animate-slide-in">
+      <div className="flex border-b border-tg-borderDark/60 pb-1 mb-2">
         <button
-          type="submit"
-          disabled={saving}
-          className="w-full py-2.5 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-xl transition disabled:opacity-50 active:scale-95 shadow-md"
+          onClick={() => setSettingsTab('profile')}
+          className={`flex-1 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider transition ${settingsTab === 'profile' ? 'text-tg-blue border-b-2 border-tg-blue' : 'text-tg-textMuted hover:text-tg-textDefault'}`}
         >
-          {saving ? 'Saving...' : 'Save Profile Changes'}
+          <div className="flex items-center justify-center gap-1.5">
+            <EditIcon style={{ fontSize: '11px' }} />
+            Profile
+          </div>
         </button>
-      </form>
+        <button
+          onClick={() => setSettingsTab('appearance')}
+          className={`flex-1 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider transition ${settingsTab === 'appearance' ? 'text-tg-blue border-b-2 border-tg-blue' : 'text-tg-textMuted hover:text-tg-textDefault'}`}
+        >
+          <div className="flex items-center justify-center gap-1.5">
+            <PaletteIcon style={{ fontSize: '11px' }} />
+            Themes
+          </div>
+        </button>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {settingsTab === 'profile' ? (
+          <motion.form
+            key="profileTab"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            onSubmit={handleSaveProfile}
+            className="space-y-4"
+          >
+            {/* Photo Upload */}
+            <div className="flex flex-col items-center pt-2">
+              <div className="w-16 h-16 rounded-2xl bg-tg-bgDark border-2 border-tg-borderDark/60 overflow-hidden flex items-center justify-center relative shadow-inner">
+                {photoPreview ? (
+                  <img src={getFileUrl(photoPreview)} alt="" className="w-full h-full object-cover" />
+                ) : user?.profilePhoto ? (
+                  <img src={getFileUrl(user.profilePhoto)} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xl font-bold text-tg-blue">{(user?.firstName || user?.username)?.[0]?.toUpperCase()}</span>
+                )}
+              </div>
+              <label className="text-[10px] text-tg-blue hover:underline cursor-pointer mt-2 font-bold tracking-wide">
+                Change Profile Photo
+                <input type="file" onChange={handlePhotoUpload} className="hidden" accept="image/*" />
+              </label>
+            </div>
+
+            <div className="space-y-3 bg-tg-bgDark/30 p-4 border border-tg-borderDark/40 rounded-2xl shadow-sm">
+              <div className="space-y-1">
+                <label className="block text-[9px] uppercase text-tg-textMuted font-bold tracking-wider ml-0.5">First Name</label>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={profileForm.firstName}
+                  onChange={handleProfileChange}
+                  className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue shadow-inner"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[9px] uppercase text-tg-textMuted font-bold tracking-wider ml-0.5">Last Name</label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={profileForm.lastName}
+                  onChange={handleProfileChange}
+                  className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue shadow-inner"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[9px] uppercase text-tg-textMuted font-bold tracking-wider ml-0.5">Department</label>
+                <input
+                  type="text"
+                  name="department"
+                  value={profileForm.department}
+                  onChange={handleProfileChange}
+                  className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue shadow-inner"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[9px] uppercase text-tg-textMuted font-bold tracking-wider ml-0.5">Employee ID</label>
+                <input
+                  type="text"
+                  name="employeeId"
+                  value={profileForm.employeeId}
+                  onChange={handleProfileChange}
+                  className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue shadow-inner"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[9px] uppercase text-tg-textMuted font-bold tracking-wider ml-0.5">Gender</label>
+                <select
+                  name="gender"
+                  value={profileForm.gender}
+                  onChange={handleProfileChange}
+                  className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue cursor-pointer"
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              type="submit"
+              disabled={saving}
+              className="w-full py-3 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-bold rounded-xl transition disabled:opacity-50 active:scale-95 shadow-md cursor-pointer shadow-tg-blue/15"
+            >
+              {saving ? 'Saving...' : 'Save Profile Changes'}
+            </motion.button>
+          </motion.form>
+        ) : (
+          <motion.div
+            key="appearanceTab"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            className="space-y-4"
+          >
+            <div className="text-[10px] uppercase font-bold text-tg-textMuted px-1 tracking-wider">
+              Select Client Theme
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 px-0.5">
+              {themesList.map((t) => {
+                const active = theme === t.id;
+                return (
+                  <motion.div
+                    key={t.id}
+                    onClick={() => dispatch(setTheme(t.id))}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`p-3 bg-tg-bgDark/45 border rounded-2xl cursor-pointer text-left transition-all ${active ? 'border-tg-blue bg-tg-bgDark shadow-md' : 'border-tg-borderDark/60 hover:bg-tg-bgDark/30'}`}
+                  >
+                    <span className="text-[11px] font-bold text-tg-textDefault block mb-2">{t.name}</span>
+                    <div className="flex gap-1.5 items-center">
+                      {t.colors.map((color, cIdx) => (
+                        <span
+                          key={cIdx}
+                          className="w-3.5 h-3.5 rounded-full border border-black/10 shadow-sm"
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

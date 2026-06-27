@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { motion, AnimatePresence } from 'framer-motion';
 import { setRightSidebarOpen, setAlert } from '../../redux/uiSlice.js';
 import { setMessages as setChatMessages, addMessage as addChatMessage, updateMessageState as updateChatMessage, deleteMessageState, setActiveChat } from '../../redux/chatSlice.js';
 import api, { getFileUrl } from '../../services/api.js';
@@ -14,23 +15,22 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ForwardIcon from '@mui/icons-material/Forward';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import StarIcon from '@mui/icons-material/Star';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CloseIcon from '@mui/icons-material/Close';
-import QueryBuilderIcon from '@mui/icons-material/QueryBuilder';
 import InsertChartOutlinedIcon from '@mui/icons-material/InsertChartOutlined';
 import FilePresentIcon from '@mui/icons-material/FilePresent';
 import DownloadIcon from '@mui/icons-material/Download';
 import CheckIcon from '@mui/icons-material/Check';
-import DoubleArrowIcon from '@mui/icons-material/DoubleArrow';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
 
 export const ChatWindow = () => {
   const dispatch = useDispatch();
   const { emitTyping } = useSocket();
 
-  const { activeChat, activeChatType, messages, typingUsers, onlineUsers } = useSelector((state) => state.chat);
+  const { activeChat, activeChatType, messages, typingUsers } = useSelector((state) => state.chat);
   const { user } = useSelector((state) => state.auth);
   const { rightSidebarOpen } = useSelector((state) => state.ui);
 
@@ -58,8 +58,11 @@ export const ChatWindow = () => {
   const [downloadProgress, setDownloadProgress] = useState({});
   const [activeMenuMsg, setActiveMenuMsg] = useState(null);
   const [menuCoords, setMenuCoords] = useState({ x: 0, y: 0 });
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const messageEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
   const handleDownloadFile = async (fileId, originalName) => {
@@ -126,6 +129,7 @@ export const ChatWindow = () => {
     if (!activeChat) return;
 
     const fetchHistory = async () => {
+      setLoadingHistory(true);
       try {
         let res;
         if (activeChatType === 'user') {
@@ -138,6 +142,8 @@ export const ChatWindow = () => {
         dispatch(setChatMessages(res.data));
       } catch (err) {
         console.error('Failed to load chat history', err);
+      } finally {
+        setLoadingHistory(false);
       }
     };
 
@@ -150,103 +156,99 @@ export const ChatWindow = () => {
 
   // Scroll to bottom on new message
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+      messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   }, [messages]);
+
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight > 300) {
+      setShowScrollBtn(true);
+    } else {
+      setShowScrollBtn(false);
+    }
+  };
+
+  const scrollToBottom = () => {
+    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Typing emitter handling
   const handleInputChange = (e) => {
     setInputContent(e.target.value);
     
-    if (activeChatType === 'channel') return; // Channels don't have typing indicators
-    
-    if (!isTypingLocal) {
-      setIsTypingLocal(true);
-      emitTyping(activeChat._id, activeChatType, true);
-    }
+    if (activeChatType === 'user') {
+      if (!isTypingLocal) {
+        setIsTypingLocal(true);
+        emitTyping({ recipientId: activeChat._id, isTyping: true });
+      }
 
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTypingLocal(false);
-      emitTyping(activeChat._id, activeChatType, false);
-    }, 2000);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTypingLocal(false);
+        emitTyping({ recipientId: activeChat._id, isTyping: false });
+      }, 2000);
+    }
   };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!inputContent.trim()) return;
 
-    const contentToSend = inputContent;
-    setInputContent(''); // Instantly clear input!
-
-    // Reset UI states
-    const tempReplyMessage = replyMessage;
-    setReplyMessage(null);
-    const tempScheduledDate = scheduledDate;
-    setScheduledDate('');
-    setShowScheduler(false);
-
-    if (editMessage) {
-      try {
-        const res = await api.put(`/chat/message/${editMessage._id}`, { content: contentToSend });
-        dispatch(updateChatMessage(res.data));
-        setEditMessage(null);
-      } catch (err) {
-        console.error(err);
-        dispatch(setAlert({ message: 'Failed to edit message', severity: 'error' }));
-      }
-      return;
-    }
-
-    // Create a temporary message for optimistic UI
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const tempMessage = {
-      _id: tempId,
-      sender: {
-        _id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-        profilePhoto: user.profilePhoto,
-      },
-      content: contentToSend,
-      type: 'text',
+    const tempId = `temp-${Date.now()}`;
+    const payload = {
+      recipientId: activeChat._id,
       recipientType: activeChatType,
-      recipientUser: activeChatType === 'user' ? activeChat._id : undefined,
-      recipientGroup: activeChatType === 'group' ? activeChat._id : undefined,
-      recipientChannel: activeChatType === 'channel' ? activeChat._id : undefined,
-      replyTo: tempReplyMessage,
-      createdAt: new Date().toISOString(),
-      status: 'sending',
-      isTemp: true,
+      content: inputContent,
+      replyToId: replyMessage?._id || undefined,
     };
 
-    // Instantly append to Redux messages list
-    if (!tempScheduledDate) {
-      dispatch(addChatMessage(tempMessage));
+    let tempScheduledDate = null;
+    if (showScheduler && scheduledDate) {
+      tempScheduledDate = scheduledDate;
+      payload.scheduledAt = scheduledDate;
+      setShowScheduler(false);
+      setScheduledDate('');
     }
 
-    try {
-      const payload = {
-        recipientId: activeChat._id,
-        recipientType: activeChatType,
-        content: contentToSend,
+    // Optimistic UI updates
+    if (!tempScheduledDate) {
+      const optimisticMsg = {
+        _id: tempId,
+        sender: { _id: user.id, username: user.username },
+        content: inputContent,
+        createdAt: new Date().toISOString(),
+        status: 'sending',
+        isTemp: true,
+        replyTo: replyMessage ? { content: replyMessage.content } : undefined,
         type: 'text',
-        replyToId: tempReplyMessage?._id,
-        scheduledAt: tempScheduledDate ? new Date(tempScheduledDate).toISOString() : undefined,
       };
+      dispatch(addChatMessage(optimisticMsg));
+    }
 
+    setInputContent('');
+    setReplyMessage(null);
+
+    try {
       let res;
-      if (activeChatType === 'channel') {
-        res = await api.post(`/channel/${activeChat._id}/post`, payload);
+      if (editMessage) {
+        res = await api.put(`/chat/message/${editMessage._id}`, { content: payload.content });
+        dispatch(updateChatMessage(res.data));
+        setEditMessage(null);
+        dispatch(setAlert({ message: 'Message updated', severity: 'success' }));
       } else {
-        res = await api.post('/chat/message', payload);
-      }
+        if (activeChatType === 'channel') {
+          res = await api.post(`/channel/${activeChat._id}/post`, payload);
+        } else {
+          res = await api.post('/chat/message', payload);
+        }
+        
+        if (tempScheduledDate) {
+          dispatch(setAlert({ message: 'Message scheduled successfully!', severity: 'success' }));
+          return;
+        }
 
-      if (tempScheduledDate) {
-        dispatch(setAlert({ message: 'Message scheduled successfully!', severity: 'success' }));
-      } else {
-        // Replace temporary message with server-resolved one
         dispatch(updateChatMessage({ _id: tempId, replaceWith: res.data }));
       }
     } catch (err) {
@@ -298,7 +300,6 @@ export const ChatWindow = () => {
     }
   };
 
-  // File Upload Handlers (Drag & Drop + Input Click)
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -338,7 +339,6 @@ export const ChatWindow = () => {
       });
       setUploadProgress(80);
 
-      // Send uploaded file as chat message attachment
       const msgPayload = {
         recipientId: activeChat._id,
         recipientType: activeChatType,
@@ -368,7 +368,6 @@ export const ChatWindow = () => {
     }
   };
 
-  // Poll Creators
   const addPollOptionField = () => {
     setPollOptions([...pollOptions, '']);
   };
@@ -405,22 +404,33 @@ export const ChatWindow = () => {
     }
   };
 
-  // Render typing indicators
   const chatRoomId = activeChat?._id;
   const currentTypingUsers = typingUsers[chatRoomId] || [];
 
   if (!activeChat) {
     return (
-      <div className="flex-grow h-full flex flex-col items-center justify-center bg-tg-bgChatDark tg-chat-bg text-tg-textMuted select-none">
-        <div className="w-20 h-20 bg-tg-bgDark rounded-full flex items-center justify-center border border-tg-borderDark mb-4">
-          <InfoOutlinedIcon fontSize="large" className="text-tg-textMuted" />
-        </div>
-        <p className="text-xs">Select a conversation or channel to start chatting</p>
+      <div className="flex-grow h-full flex flex-col items-center justify-center bg-tg-bgChatDark tg-chat-bg text-tg-textMuted select-none relative p-4">
+        {/* Decorative gradient spot */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-tg-blue/10 blur-[90px] rounded-full pointer-events-none" />
+        
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-tg-bgSidebarDark/60 backdrop-blur-xl border border-tg-borderDark/60 p-8 sm:p-12 rounded-3xl shadow-2xl max-w-sm text-center space-y-4 relative z-10"
+        >
+          <div className="w-16 h-16 bg-gradient-to-tr from-tg-blue/10 to-tg-blue/20 rounded-2xl flex items-center justify-center text-tg-blue mx-auto border border-tg-blue/20 shadow-md">
+            <InfoOutlinedIcon fontSize="medium" />
+          </div>
+          <h3 className="text-sm font-bold text-tg-textDefault uppercase tracking-wider">Welcome to TeliChat</h3>
+          <p className="text-xs text-tg-textMuted leading-relaxed">
+            Select a conversation, group room, or corporate channel from the sidebar list to start chatting.
+          </p>
+        </motion.div>
       </div>
     );
   }
 
-  // Find pinned message in current conversation
   const pinnedMessage = messages.find(m => m.isPinned);
 
   return (
@@ -431,285 +441,308 @@ export const ChatWindow = () => {
       onDrop={handleDrop}
       className={`flex-grow h-full flex flex-col bg-tg-bgChatDark tg-chat-bg relative ${dragActive ? 'brightness-90' : ''}`}
     >
-      {/* Drag upload overlays */}
-      {dragActive && (
-        <div className="absolute inset-0 bg-tg-blue/10 backdrop-blur-sm border-2 border-dashed border-tg-blue z-50 flex items-center justify-center pointer-events-none">
-          <div className="bg-tg-bgSidebarDark p-6 rounded-2xl border border-tg-borderDark text-center shadow-2xl">
-            <AttachFileIcon className="text-tg-blue animate-bounce" fontSize="large" />
-            <h4 className="text-sm font-bold text-tg-textDefault mt-3">Drop files to upload</h4>
-            <p className="text-[10px] text-tg-textMuted mt-1">Supports images, docs, media up to 50MB</p>
-          </div>
-        </div>
-      )}
+      {/* Drag upload overlay */}
+      <AnimatePresence>
+        {dragActive && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-tg-blue/10 backdrop-blur-sm border-2 border-dashed border-tg-blue z-50 flex items-center justify-center pointer-events-none"
+          >
+            <div className="bg-tg-bgSidebarDark/90 backdrop-blur-md p-7 rounded-3xl border border-tg-borderDark text-center shadow-2xl">
+              <AttachFileIcon className="text-tg-blue animate-bounce" fontSize="medium" />
+              <h4 className="text-sm font-bold text-tg-textDefault mt-3">Drop files to upload</h4>
+              <p className="text-[10px] text-tg-textMuted mt-1 leading-normal">Supports images, docs, media up to 50MB</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Chat header */}
       <div className="h-[60px] bg-tg-bgSidebarDark border-b border-tg-borderDark flex items-center justify-between px-4 md:px-6 z-30 shadow-sm flex-shrink-0">
         <div className="flex items-center gap-3">
-          {/* Back button on mobile */}
           <button
             onClick={() => dispatch(setActiveChat({ chat: null, type: null }))}
-            className="md:hidden p-1.5 rounded-lg text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition mr-1"
+            className="p-1.5 rounded-xl hover:bg-tg-bgDark text-tg-textMuted hover:text-tg-textDefault transition md:hidden"
           >
             <ArrowBackIcon fontSize="small" />
           </button>
           
-          <div className="w-10 h-10 rounded-xl bg-tg-blue/10 flex items-center justify-center text-tg-blue font-bold border border-tg-blue/20">
-            {activeChat.avatar || activeChat.profilePhoto ? (
-              <img src={getFileUrl(activeChat.avatar || activeChat.profilePhoto)} alt="" className="w-full h-full object-cover rounded-xl" />
-            ) : (
-              <span>{(activeChat.name || activeChat.firstName || activeChat.username || '?')[0].toUpperCase()}</span>
-            )}
-          </div>
-          <div>
+          <div className="text-left">
             <h3 className="text-xs font-bold text-tg-textDefault">
-              {activeChatType === 'user' 
+              {activeChatType === 'user'
                 ? (activeChat.firstName || activeChat.lastName ? `${activeChat.firstName || ''} ${activeChat.lastName || ''}`.trim() : `@${activeChat.username}`)
                 : activeChat.name}
             </h3>
-            <span className="text-[10px] text-tg-textMuted mt-0.5 block">
-              {activeChatType === 'user' ? (
-                onlineUsers[activeChat._id] ? (
-                  <span className="text-green-400 font-semibold">Online</span>
-                ) : (
-                  'Offline'
-                )
-              ) : activeChatType === 'group' ? (
-                `${activeChat.members?.length || 0} members`
-              ) : (
-                'Channel Announcements'
-              )}
+            <span className="text-[9px] text-tg-textMuted font-medium block mt-0.5">
+              {activeChatType === 'user' ? (activeChat.isOnline ? 'Online' : 'Offline') : activeChatType === 'group' ? `${activeChat.members?.length || 0} members • Group` : `${activeChat.subscribers?.length || 0} subscribers • Channel`}
             </span>
           </div>
         </div>
 
-        <button
-          onClick={() => dispatch(setRightSidebarOpen(!rightSidebarOpen))}
-          className={`p-2 rounded-xl text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition ${rightSidebarOpen ? 'bg-tg-bgDark text-tg-textDefault' : ''}`}
-        >
-          <InfoOutlinedIcon fontSize="small" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => dispatch(setRightSidebarOpen(!rightSidebarOpen))}
+            className={`p-2 rounded-xl transition ${rightSidebarOpen ? 'bg-tg-blue/10 text-tg-blue border border-tg-blue/20' : 'text-tg-textMuted hover:bg-tg-bgDark'}`}
+            title="Conversation details"
+          >
+            <InfoOutlinedIcon fontSize="small" />
+          </button>
+        </div>
       </div>
 
       {/* Pinned Message Banner */}
-      {pinnedMessage && (
-        <div className="bg-tg-bgSidebarDark border-b border-tg-borderDark px-6 py-2 flex justify-between items-center z-20 backdrop-blur-md">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <PushPinIcon fontSize="inherit" className="text-tg-blue" />
-            <div className="text-left overflow-hidden">
-              <span className="text-[10px] text-tg-blue font-bold block uppercase tracking-wide">Pinned Message</span>
-              <p className="text-[11px] text-tg-textMuted truncate">{pinnedMessage.content}</p>
-            </div>
-          </div>
-          <button onClick={() => handlePin(pinnedMessage._id)} className="text-tg-textMuted hover:text-tg-textDefault transition">
-            <CloseIcon fontSize="small" />
-          </button>
-        </div>
-      )}
-
-      {/* Messages viewport */}
-      <div className="flex-grow overflow-y-auto px-6 py-6 space-y-4">
-        {messages.map((msg) => {
-          const isSelf = msg.sender._id === user.id;
-          return (
-            <div
-              key={msg._id}
-              className={`flex flex-col max-w-[85%] md:max-w-[70%] group relative ${isSelf ? 'ml-auto items-end' : 'mr-auto items-start animate-slide-in'}`}
-              onContextMenu={(e) => handleContextMenu(e, msg)}
-            >
-              {/* Message Metadata Sender Header */}
-              {!isSelf && (
-                <span className="text-[9px] font-bold text-tg-textMuted mb-1 ml-2">
-                  {msg.sender.firstName || msg.sender.lastName ? `${msg.sender.firstName || ''} ${msg.sender.lastName || ''}`.trim() : `@${msg.sender.username}`}
-                </span>
-              )}
-
-              {/* Message Bubble container */}
-              <div
-                className={`p-3 rounded-2xl relative shadow-md ${isSelf ? 'bg-tg-bubbleSelfDark text-white rounded-tr-none border border-tg-blue/10' : 'bg-tg-bubbleOtherDark text-tg-textDefault rounded-tl-none border border-tg-borderDark'}`}
-              >
-                {/* Chevron trigger dropdown */}
-                {!msg.isTemp && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setActiveMenuMsg(msg);
-                      setMenuCoords({ x: rect.left, y: rect.bottom + 5 });
-                    }}
-                    className="absolute top-1.5 right-1.5 p-0.5 rounded text-tg-textMuted bg-black/10 hover:bg-black/20 hover:text-tg-textDefault opacity-0 group-hover:opacity-100 transition z-10"
-                    title="Options"
-                  >
-                    <MoreVertIcon fontSize="inherit" style={{ fontSize: '12px' }} />
-                  </button>
-                )}
-                {/* Reply display reference */}
-                {msg.replyTo && (
-                  <div className="bg-black/10 border-l-2 border-tg-blue p-1.5 rounded mb-2 text-left cursor-pointer opacity-85">
-                    <span className="text-[9px] font-bold text-tg-blue block">Reply to</span>
-                    <p className="text-[10px] truncate text-tg-textMuted">{msg.replyTo.content}</p>
-                  </div>
-                )}
-
-                {/* Forwarded Tag */}
-                {msg.forwardFrom && (
-                  <span className="text-[9px] italic text-tg-textMuted block mb-1.5">
-                    Forwarded from {msg.forwardFrom.firstName}
-                  </span>
-                )}
-
-                {/* File attachments rendering */}
-                {msg.type === 'file' && msg.file && (
-                  <div className="mb-2">
-                    {msg.file.mimeType?.startsWith('image/') ? (
-                      <div className="relative rounded-xl overflow-hidden border border-tg-borderDark max-w-sm max-h-[250px] bg-black/15 group/img">
-                        <img
-                          src={getFileUrl(msg.file.path)}
-                          alt={msg.file.originalname}
-                          className="w-full h-full object-cover cursor-pointer hover:brightness-95 transition"
-                          onClick={() => window.open(getFileUrl(msg.file.path), '_blank')}
-                        />
-                        {downloadProgress[msg.file._id] !== undefined ? (
-                          <div className="absolute inset-0 bg-black/65 flex flex-col items-center justify-center text-white z-10">
-                            <div className="w-8 h-8 border-3 border-tg-blue border-t-transparent rounded-full animate-spin mb-1.5" />
-                            <span className="text-[10px] font-semibold">{downloadProgress[msg.file._id]}%</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleDownloadFile(msg.file._id, msg.file.originalname);
-                            }}
-                            className="absolute bottom-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition opacity-0 group-hover/img:opacity-100 shadow-md z-10"
-                            title="Download Image"
-                          >
-                            <DownloadIcon fontSize="small" />
-                          </button>
-                        )}
-                      </div>
-                    ) : msg.file.mimeType?.startsWith('video/') ? (
-                      <div className="relative rounded-xl overflow-hidden border border-tg-borderDark max-w-sm bg-black/15">
-                        <video
-                          src={getFileUrl(msg.file.path)}
-                          controls
-                          className="w-full max-h-[250px] object-contain focus:outline-none"
-                        />
-                        {downloadProgress[msg.file._id] !== undefined ? (
-                          <div className="absolute inset-0 bg-black/65 flex flex-col items-center justify-center text-white z-10">
-                            <div className="w-8 h-8 border-3 border-tg-blue border-t-transparent rounded-full animate-spin mb-1.5" />
-                            <span className="text-[10px] font-semibold">{downloadProgress[msg.file._id]}%</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleDownloadFile(msg.file._id, msg.file.originalname);
-                            }}
-                            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition shadow-md z-10"
-                            title="Download Video"
-                          >
-                            <DownloadIcon fontSize="small" />
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3 bg-black/10 p-2.5 rounded-xl border border-tg-borderDark">
-                        <FilePresentIcon className="text-tg-blue" />
-                        <div className="text-left overflow-hidden">
-                          <p className="text-xs font-semibold truncate text-tg-textDefault">{msg.file.originalname}</p>
-                          <span className="text-[10px] text-tg-textMuted">
-                            {(msg.file.size / 1024 / 1024).toFixed(2)} MB • v{msg.file.version}
-                          </span>
-                        </div>
-                        {downloadProgress[msg.file._id] !== undefined ? (
-                          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
-                            <div className="w-4 h-4 border-2 border-tg-blue border-t-transparent rounded-full animate-spin" />
-                            <span className="text-[9px] font-bold text-tg-blue">{downloadProgress[msg.file._id]}%</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleDownloadFile(msg.file._id, msg.file.originalname);
-                            }}
-                            className="p-1.5 rounded-full bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition ml-auto flex-shrink-0"
-                            title="Download file"
-                          >
-                            <DownloadIcon fontSize="small" />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Poll display block */}
-                {msg.type === 'poll' && msg.poll && (
-                  <div className="bg-black/10 p-3 rounded-xl border border-tg-borderDark space-y-3 text-left w-64">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-tg-textDefault">
-                      <InsertChartOutlinedIcon className="text-tg-blue" fontSize="small" />
-                      <span>{msg.poll.question}</span>
-                    </div>
-                    <div className="space-y-2">
-                      {msg.poll.options.map((opt, oIdx) => {
-                        const totalVotes = msg.poll.options.reduce((sum, o) => sum + o.votes.length, 0);
-                        const percent = totalVotes > 0 ? Math.round((opt.votes.length / totalVotes) * 100) : 0;
-                        const hasVoted = opt.votes.includes(user.id);
-
-                        return (
-                          <div
-                            key={opt._id || oIdx}
-                            onClick={() => handleVote(msg._id, oIdx)}
-                            className={`p-2 rounded-lg border text-xs text-tg-textDefault cursor-pointer transition select-none flex items-center justify-between relative overflow-hidden ${hasVoted ? 'border-tg-blue/40 bg-tg-blue/10' : 'border-tg-borderDark bg-tg-bgDark hover:bg-tg-bgDark'}`}
-                          >
-                            <span className="z-10">{opt.text}</span>
-                            <span className="text-[10px] text-tg-textMuted z-10">{percent}% ({opt.votes.length})</span>
-                            <div className="absolute inset-y-0 left-0 bg-tg-blue/5 transition-all" style={{ width: `${percent}%` }} />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Plain Text content */}
-                {msg.type !== 'poll' && <p className="text-xs text-left leading-normal">{msg.content}</p>}
-
-                {/* Bubble footer bar */}
-                <div className="flex items-center justify-end gap-1 mt-1">
-                  {msg.isEdited && <span className="text-[9px] text-tg-textMuted italic">edited</span>}
-                  <span className="text-[9px] text-tg-textMuted ml-1">
-                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  
-                  {/* Delivery Status checkmarks */}
-                  {isSelf && (
-                    <span className="text-tg-blue ml-0.5" style={{ fontSize: '10px' }}>
-                      {msg.status === 'seen' ? <CheckIcon fontSize="inherit" className="font-bold" /> : msg.status === 'sending' ? <span className="inline-block animate-spin text-[8px] text-tg-textMuted">⌛</span> : msg.status === 'failed' ? <span className="text-red-500 font-bold">⚠️</span> : <CheckIcon fontSize="inherit" className="opacity-40" />}
-                    </span>
-                  )}
-                </div>
-
-                {/* Emoji reactions row */}
-                {msg.reactions?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1.5 justify-start">
-                    {msg.reactions.map((r, rIdx) => (
-                      <span
-                        key={rIdx}
-                        className="text-[10px] bg-black/10 border border-tg-borderDark/25 px-1.5 py-0.5 rounded-full select-none"
-                      >
-                        {r.emoji}
-                      </span>
-                    ))}
-                  </div>
-                )}
+      <AnimatePresence>
+        {pinnedMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-tg-bgSidebarDark/90 backdrop-blur-md border-b border-tg-borderDark/80 px-5 py-2.5 flex items-center justify-between z-20 text-left shadow-sm relative flex-shrink-0"
+          >
+            <div className="flex items-center gap-3 overflow-hidden">
+              <PushPinIcon fontSize="small" className="text-tg-blue" style={{ fontSize: '14px' }} />
+              <div className="overflow-hidden">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-tg-blue block">Pinned Message</span>
+                <p className="text-xs text-tg-textMuted truncate leading-relaxed">{pinnedMessage.content}</p>
               </div>
             </div>
-          );
-        })}
+            <button
+              onClick={() => handlePin(pinnedMessage._id)} // Toggle pin state off
+              className="p-1 rounded-xl text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition ml-4"
+              title="Unpin message"
+            >
+              <CloseIcon fontSize="inherit" style={{ fontSize: '13px' }} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Message List Area */}
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-grow overflow-y-auto px-4 md:px-6 py-6 space-y-4 relative flex flex-col"
+      >
+        {loadingHistory ? (
+          // History Skeletons
+          <div className="space-y-4 my-auto w-full">
+            {[1, 2, 3].map(idx => {
+              const selfSide = idx % 2 === 0;
+              return (
+                <div key={idx} className={`flex flex-col max-w-[60%] ${selfSide ? 'ml-auto items-end' : 'mr-auto items-start'} space-y-1`}>
+                  <div className="h-2.5 w-16 bg-tg-borderDark/60 skeleton rounded mb-1" />
+                  <div className={`h-12 w-48 bg-tg-borderDark/60 skeleton rounded-2xl ${selfSide ? 'rounded-tr-none' : 'rounded-tl-none'}`} />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          messages.map((msg) => {
+            const isSelf = msg.sender._id === user.id;
+            return (
+              <div
+                key={msg._id}
+                className={`flex flex-col max-w-[85%] md:max-w-[70%] group relative ${isSelf ? 'ml-auto items-end' : 'mr-auto items-start animate-slide-in'}`}
+                onContextMenu={(e) => handleContextMenu(e, msg)}
+              >
+                {/* Message Metadata Sender Header */}
+                {!isSelf && (
+                  <span className="text-[9px] font-bold text-tg-textMuted mb-1 ml-2">
+                    {msg.sender.firstName || msg.sender.lastName ? `${msg.sender.firstName || ''} ${msg.sender.lastName || ''}`.trim() : `@${msg.sender.username}`}
+                  </span>
+                )}
+
+                {/* Message Bubble container */}
+                <div
+                  className={`p-3 rounded-2xl relative shadow-md ${isSelf ? 'bg-tg-bubbleSelfDark text-white rounded-tr-none border border-tg-blue/15 shadow-tg-blue/5' : 'bg-tg-bubbleOtherDark text-tg-textDefault rounded-tl-none border border-tg-borderDark/60'}`}
+                >
+                  {/* Chevron trigger dropdown */}
+                  {!msg.isTemp && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setActiveMenuMsg(msg);
+                        setMenuCoords({ x: rect.left, y: rect.bottom + 5 });
+                      }}
+                      className="absolute top-1.5 right-1.5 p-0.5 rounded text-tg-textMuted bg-black/10 hover:bg-black/20 hover:text-tg-textDefault opacity-0 group-hover:opacity-100 transition z-10"
+                      title="Options"
+                    >
+                      <MoreVertIcon fontSize="inherit" style={{ fontSize: '12px' }} />
+                    </button>
+                  )}
+                  
+                  {/* Reply display reference */}
+                  {msg.replyTo && (
+                    <div className="bg-black/10 border-l-2 border-tg-blue p-1.5 rounded mb-2 text-left cursor-pointer opacity-85">
+                      <span className="text-[9px] font-bold text-tg-blue block">Reply to</span>
+                      <p className="text-[10px] truncate text-tg-textMuted">{msg.replyTo.content}</p>
+                    </div>
+                  )}
+
+                  {/* Forwarded Tag */}
+                  {msg.forwardFrom && (
+                    <span className="text-[9px] italic text-tg-textMuted block mb-1.5">
+                      Forwarded from {msg.forwardFrom.firstName}
+                    </span>
+                  )}
+
+                  {/* File attachments rendering */}
+                  {msg.type === 'file' && msg.file && (
+                    <div className="mb-2">
+                      {msg.file.mimeType?.startsWith('image/') ? (
+                        <div className="relative rounded-xl overflow-hidden border border-tg-borderDark max-w-sm max-h-[250px] bg-black/15 group/img">
+                          <img
+                            src={getFileUrl(msg.file.path)}
+                            alt={msg.file.originalname}
+                            className="w-full h-full object-cover cursor-pointer hover:brightness-95 transition"
+                            onClick={() => window.open(getFileUrl(msg.file.path), '_blank')}
+                          />
+                          {downloadProgress[msg.file._id] !== undefined ? (
+                            <div className="absolute inset-0 bg-black/65 flex flex-col items-center justify-center text-white z-10">
+                              <div className="w-8 h-8 border-3 border-tg-blue border-t-transparent rounded-full animate-spin mb-1.5" />
+                              <span className="text-[10px] font-semibold">{downloadProgress[msg.file._id]}%</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDownloadFile(msg.file._id, msg.file.originalname);
+                              }}
+                              className="absolute bottom-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition opacity-0 group-hover/img:opacity-100 shadow-md z-10"
+                              title="Download Image"
+                            >
+                              <DownloadIcon fontSize="small" />
+                            </button>
+                          )}
+                        </div>
+                      ) : msg.file.mimeType?.startsWith('video/') ? (
+                        <div className="relative rounded-xl overflow-hidden border border-tg-borderDark max-w-sm bg-black/15">
+                          <video
+                            src={getFileUrl(msg.file.path)}
+                            controls
+                            className="w-full max-h-[250px] object-contain focus:outline-none"
+                          />
+                          {downloadProgress[msg.file._id] !== undefined ? (
+                            <div className="absolute inset-0 bg-black/65 flex flex-col items-center justify-center text-white z-10">
+                              <div className="w-8 h-8 border-3 border-tg-blue border-t-transparent rounded-full animate-spin mb-1.5" />
+                              <span className="text-[10px] font-semibold">{downloadProgress[msg.file._id]}%</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDownloadFile(msg.file._id, msg.file.originalname);
+                              }}
+                              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition shadow-md z-10"
+                              title="Download Video"
+                            >
+                              <DownloadIcon fontSize="small" />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 bg-black/10 p-2.5 rounded-xl border border-tg-borderDark">
+                          <FilePresentIcon className="text-tg-blue" />
+                          <div className="text-left overflow-hidden">
+                            <p className="text-xs font-semibold truncate text-tg-textDefault">{msg.file.originalname}</p>
+                            <span className="text-[10px] text-tg-textMuted">
+                              {(msg.file.size / 1024 / 1024).toFixed(2)} MB • v{msg.file.version}
+                            </span>
+                          </div>
+                          {downloadProgress[msg.file._id] !== undefined ? (
+                            <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+                              <div className="w-4 h-4 border-2 border-tg-blue border-t-transparent rounded-full animate-spin" />
+                              <span className="text-[9px] font-bold text-tg-blue">{downloadProgress[msg.file._id]}%</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDownloadFile(msg.file._id, msg.file.originalname);
+                              }}
+                              className="p-1.5 rounded-full bg-tg-blue/10 hover:bg-tg-blue/20 text-tg-blue transition ml-auto flex-shrink-0"
+                              title="Download file"
+                            >
+                              <DownloadIcon fontSize="small" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Poll display block */}
+                  {msg.type === 'poll' && msg.poll && (
+                    <div className="bg-black/10 p-3 rounded-xl border border-tg-borderDark space-y-3 text-left w-64">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-tg-textDefault">
+                        <InsertChartOutlinedIcon className="text-tg-blue" fontSize="small" />
+                        <span>{msg.poll.question}</span>
+                      </div>
+                      <div className="space-y-2">
+                        {msg.poll.options.map((opt, oIdx) => {
+                          const totalVotes = msg.poll.options.reduce((sum, o) => sum + o.votes.length, 0);
+                          const percent = totalVotes > 0 ? Math.round((opt.votes.length / totalVotes) * 100) : 0;
+                          const hasVoted = opt.votes.includes(user.id);
+
+                          return (
+                            <div
+                              key={opt._id || oIdx}
+                              onClick={() => handleVote(msg._id, oIdx)}
+                              className={`p-2 rounded-lg border text-xs text-tg-textDefault cursor-pointer transition select-none flex items-center justify-between relative overflow-hidden ${hasVoted ? 'border-tg-blue/40 bg-tg-blue/10' : 'border-tg-borderDark bg-tg-bgDark hover:bg-tg-bgDark'}`}
+                            >
+                              <span className="z-10">{opt.text}</span>
+                              <span className="text-[10px] text-tg-textMuted z-10">{percent}% ({opt.votes.length})</span>
+                              <div className="absolute inset-y-0 left-0 bg-tg-blue/5 transition-all" style={{ width: `${percent}%` }} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Plain Text content */}
+                  {msg.type !== 'poll' && <p className="text-xs text-left leading-normal">{msg.content}</p>}
+
+                  {/* Bubble footer bar */}
+                  <div className="flex items-center justify-end gap-1 mt-1">
+                    {msg.isEdited && <span className="text-[9px] text-tg-textMuted italic">edited</span>}
+                    <span className="text-[9px] text-tg-textMuted ml-1">
+                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    
+                    {/* Delivery Status checkmarks */}
+                    {isSelf && (
+                      <span className="text-tg-blue ml-0.5" style={{ fontSize: '10px' }}>
+                        {msg.status === 'seen' ? <CheckIcon fontSize="inherit" className="font-bold" /> : msg.status === 'sending' ? <span className="inline-block animate-spin text-[8px] text-tg-textMuted">⌛</span> : msg.status === 'failed' ? <span className="text-red-500 font-bold">⚠️</span> : <CheckIcon fontSize="inherit" className="opacity-40" />}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Emoji reactions row */}
+                  {msg.reactions?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5 justify-start">
+                      {msg.reactions.map((r, rIdx) => (
+                        <span
+                          key={rIdx}
+                          className="text-[10px] bg-black/10 border border-tg-borderDark/25 px-1.5 py-0.5 rounded-full select-none"
+                        >
+                          {r.emoji}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
 
         {/* Typing indicator bubble */}
         {currentTypingUsers.length > 0 && (
@@ -721,22 +754,42 @@ export const ChatWindow = () => {
         <div ref={messageEndRef} />
       </div>
 
+      {/* Floating Scroll To Bottom Button */}
+      <AnimatePresence>
+        {showScrollBtn && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={scrollToBottom}
+            className="absolute bottom-20 right-6 p-3 rounded-full bg-tg-bgSidebarDark/90 backdrop-blur border border-tg-borderDark text-tg-blue shadow-xl z-20 hover:scale-105 active:scale-95 transition"
+          >
+            <KeyboardArrowDownIcon />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       {/* Uploading progress bar */}
       {uploading && (
         <div className="bg-tg-bgSidebarDark border-t border-tg-borderDark px-6 py-2 flex items-center gap-4 z-20">
           <div className="flex-grow h-1.5 bg-tg-bgDark rounded-full overflow-hidden">
             <div className="h-full bg-tg-blue transition-all" style={{ width: `${uploadProgress}%` }} />
           </div>
-          <span className="text-[10px] text-tg-textMuted font-bold">{uploadProgress}%</span>
+          <span className="text-[10px] text-tg-textMuted font-mono">{uploadProgress}%</span>
         </div>
       )}
 
-      {/* Poll Creator Modal/Overlay */}
+      {/* Group Poll Creator Drawer Overlay */}
       {showPollCreator && (
-        <div className="absolute inset-0 bg-tg-bgSidebarDark z-40 p-6 flex flex-col justify-center max-w-sm mx-auto animate-slide-in">
+        <div className="absolute inset-x-0 bottom-0 bg-tg-bgSidebarDark border-t border-tg-borderDark p-6 z-40 animate-slide-in shadow-2xl rounded-t-3xl max-h-[70%] overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-sm font-bold text-tg-textDefault uppercase tracking-wider">Create Group Poll</h3>
-            <button onClick={() => setShowPollCreator(false)} className="text-xs text-tg-textMuted hover:text-tg-textDefault">Cancel</button>
+            <button
+              onClick={() => { setShowPollCreator(false); setPollOptions(['', '']); }}
+              className="text-xs text-tg-textMuted hover:text-tg-textDefault"
+            >
+              Cancel
+            </button>
           </div>
           <form onSubmit={handleCreatePoll} className="space-y-4 text-left">
             <div>
@@ -746,7 +799,7 @@ export const ChatWindow = () => {
                 required
                 value={pollQuestion}
                 onChange={(e) => setPollQuestion(e.target.value)}
-                className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
+                className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
               />
             </div>
             <div className="space-y-2">
@@ -759,20 +812,20 @@ export const ChatWindow = () => {
                   placeholder={`Option ${oIdx + 1}`}
                   value={opt}
                   onChange={(e) => handlePollOptionChange(oIdx, e.target.value)}
-                  className="w-full px-3 py-2 bg-tg-bgDark border border-tg-borderDark rounded-lg text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
+                  className="w-full px-3.5 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl text-xs text-tg-textDefault focus:outline-none focus:border-tg-blue"
                 />
               ))}
               <button
                 type="button"
                 onClick={addPollOptionField}
-                className="text-[10px] text-tg-blue hover:underline"
+                className="text-[10px] text-tg-blue hover:underline font-bold mt-1 block"
               >
                 + Add Option
               </button>
             </div>
             <button
               type="submit"
-              className="w-full py-2 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-lg transition"
+              className="w-full py-2.5 bg-tg-blue hover:bg-tg-darkBlue text-white text-xs font-semibold rounded-xl transition shadow-md cursor-pointer"
             >
               Launch Poll
             </button>
@@ -781,7 +834,7 @@ export const ChatWindow = () => {
       )}
 
       {/* Message compose bar */}
-      <div className="p-4 bg-tg-bgSidebarDark border-t border-tg-borderDark z-30 flex-shrink-0">
+      <div className="p-4 bg-tg-bgSidebarDark border-t border-tg-borderDark/80 z-30 flex-shrink-0">
         {/* Reply/Edit Indicator bar */}
         {(replyMessage || editMessage) && (
           <div className="bg-tg-bgDark border border-tg-borderDark p-2.5 rounded-xl mb-3 flex items-center justify-between text-left">
@@ -811,7 +864,7 @@ export const ChatWindow = () => {
 
         <form onSubmit={handleSendMessage} className="flex items-center gap-3">
           {/* File attachment upload button */}
-          <label className="p-2 rounded-xl text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition cursor-pointer flex-shrink-0">
+          <label className="p-2.5 rounded-xl text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition cursor-pointer flex-shrink-0">
             <input type="file" onChange={handleFileSelect} className="hidden" />
             <AttachFileIcon fontSize="small" />
           </label>
@@ -821,43 +874,26 @@ export const ChatWindow = () => {
             <button
               type="button"
               onClick={() => setShowPollCreator(true)}
-              className="p-2 rounded-xl text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition flex-shrink-0"
+              className="p-2.5 rounded-xl text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition flex-shrink-0"
               title="Create Poll"
             >
               <InsertChartOutlinedIcon fontSize="small" />
             </button>
           )}
 
-          {/* Scheduled post clock */}
-          <button
-            type="button"
-            onClick={() => setShowScheduler(!showScheduler)}
-            className={`p-2 rounded-xl text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition flex-shrink-0 ${showScheduler ? 'bg-tg-bgDark text-tg-textDefault' : ''}`}
-            title="Schedule Post"
-          >
-            <QueryBuilderIcon fontSize="small" />
-          </button>
-
-          {showScheduler && (
-            <input
-              type="datetime-local"
-              value={scheduledDate}
-              onChange={(e) => setScheduledDate(e.target.value)}
-              className="px-2 py-1 bg-tg-bgDark border border-tg-borderDark rounded-lg text-[10px] text-tg-textDefault focus:outline-none"
-            />
-          )}
-
+          {/* Message Input field */}
           <input
             type="text"
-            placeholder={editMessage ? "Edit message..." : "Write a message..."}
+            required
             value={inputContent}
+            placeholder="Type a message..."
             onChange={handleInputChange}
-            className="flex-grow px-4 py-2 bg-tg-bgDark border border-tg-borderDark rounded-xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-xs placeholder-tg-textMuted"
+            className="flex-grow px-4 py-2.5 bg-tg-bgDark border border-tg-borderDark rounded-xl focus:border-tg-blue focus:outline-none text-tg-textDefault text-xs placeholder-tg-textMuted"
           />
 
           <button
             type="submit"
-            className="p-2 bg-tg-blue hover:bg-tg-darkBlue text-white rounded-xl shadow-lg shadow-tg-blue/20 transition flex-shrink-0 active:scale-95"
+            className="p-2.5 bg-tg-blue hover:bg-tg-darkBlue text-white rounded-xl shadow-lg shadow-tg-blue/20 transition flex-shrink-0 active:scale-95 cursor-pointer"
           >
             <SendIcon fontSize="small" />
           </button>

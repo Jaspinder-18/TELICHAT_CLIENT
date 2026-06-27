@@ -109,6 +109,16 @@ const JoinInviteHandler = () => {
 export const App = () => {
   const dispatch = useDispatch();
   const alertState = useSelector((state) => state.ui.alert);
+  const theme = useSelector((state) => state.ui.theme);
+
+  useEffect(() => {
+    const el = document.documentElement;
+    el.className = '';
+    el.classList.add(`theme-${theme}`);
+    if (theme !== 'light') {
+      el.classList.add('dark');
+    }
+  }, [theme]);
 
   const handleCloseAlert = () => {
     dispatch(clearAlert());

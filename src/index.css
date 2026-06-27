@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Scrollbars */
+/* Premium Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -13,32 +13,48 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(127, 145, 164, 0.2);
-  border-radius: 4px;
+  background: rgba(127, 145, 164, 0.15);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(127, 145, 164, 0.4);
+  background: rgba(127, 145, 164, 0.3);
 }
 
 /* Glassmorphism Styles */
 .glass-panel {
-  background: rgba(23, 33, 43, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(23, 33, 43, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 .glass-panel-light {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
 
+/* Keyframes for Skeletons and Custom Transitions */
+@keyframes skeleton-loading {
+  0% {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  50% {
+    background-color: rgba(255, 255, 255, 0.12);
+  }
+  100% {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+}
 
+.skeleton {
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
 
-/* Micro-animations */
 @keyframes slideIn {
   from {
     transform: translateY(12px);
@@ -54,42 +70,133 @@
   animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes pulseBorder {
-  0%, 100% { border-color: rgba(36, 161, 222, 0.2); }
-  50% { border-color: rgba(36, 161, 222, 0.8); }
-}
-
-.animate-pulse-border {
-  animation: pulseBorder 2s infinite ease-in-out;
-}
-
-/* Base custom styles */
+/* Design Tokens for Multi-Theme Support */
 :root {
-  /* Light Mode theme variables */
-  --bg-app: #f3f4f6;
-  --bg-sidebar: #ffffff;
-  --bg-chat: #e5ecd7;
-  --bg-bubble-self: #24a1de;
-  --bg-bubble-other: #ffffff;
-  --bg-input: #ffffff;
-  --border-color: #e5e7eb;
-  --color-text: #1f2937;
-  --color-text-muted: #6b7280;
-  --bg-pattern-dot: rgba(0, 0, 0, 0.04);
-}
-
-.dark {
-  /* Dark Mode theme variables */
+  /* Default: Dark Theme */
   --bg-app: #0e1621;
   --bg-sidebar: #17212b;
   --bg-chat: #182533;
   --bg-bubble-self: #2b5278;
   --bg-bubble-other: #182533;
-  --bg-input: #1f2937;
-  --border-color: #1c2935;
+  --bg-input: #24303f;
+  --border-color: #24303f;
   --color-text: #f8fafc;
   --color-text-muted: #7f91a4;
-  --bg-pattern-dot: rgba(127, 145, 164, 0.1);
+  --bg-pattern-dot: rgba(127, 145, 164, 0.08);
+  --tg-blue: #24a1de;
+  --tg-darkBlue: #1d82b3;
+}
+
+/* 1. Light Theme */
+.theme-light {
+  --bg-app: #f1f5f9;
+  --bg-sidebar: #ffffff;
+  --bg-chat: #f8fafc;
+  --bg-bubble-self: #3b82f6;
+  --bg-bubble-other: #ffffff;
+  --bg-input: #f8fafc;
+  --border-color: #e2e8f0;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --bg-pattern-dot: rgba(15, 23, 42, 0.04);
+  --tg-blue: #3b82f6;
+  --tg-darkBlue: #2563eb;
+}
+
+/* 2. Dark Theme (Standard Blue-Grey Dark) */
+.theme-dark {
+  --bg-app: #0e1621;
+  --bg-sidebar: #17212b;
+  --bg-chat: #182533;
+  --bg-bubble-self: #2b5278;
+  --bg-bubble-other: #182533;
+  --bg-input: #24303f;
+  --border-color: #24303f;
+  --color-text: #f8fafc;
+  --color-text-muted: #7f91a4;
+  --bg-pattern-dot: rgba(127, 145, 164, 0.08);
+  --tg-blue: #24a1de;
+  --tg-darkBlue: #1d82b3;
+}
+
+/* 3. Midnight Theme (AMOLED Black) */
+.theme-midnight {
+  --bg-app: #000000;
+  --bg-sidebar: #050505;
+  --bg-chat: #000000;
+  --bg-bubble-self: #1f1f1f;
+  --bg-bubble-other: #0e0e0e;
+  --bg-input: #121212;
+  --border-color: #1a1a1a;
+  --color-text: #ffffff;
+  --color-text-muted: #8c8c8c;
+  --bg-pattern-dot: rgba(255, 255, 255, 0.04);
+  --tg-blue: #ffffff;
+  --tg-darkBlue: #e0e0e0;
+}
+
+/* 4. Blue Theme (Deep Ocean Blue) */
+.theme-blue {
+  --bg-app: #0b132b;
+  --bg-sidebar: #1c2541;
+  --bg-chat: #0b132b;
+  --bg-bubble-self: #48cae4;
+  --bg-bubble-other: #1c2541;
+  --bg-input: #1c2541;
+  --border-color: #3a506b;
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --bg-pattern-dot: rgba(72, 202, 228, 0.08);
+  --tg-blue: #00b4d8;
+  --tg-darkBlue: #0077b6;
+}
+
+/* 5. Purple Theme (Cyberpunk Purple) */
+.theme-purple {
+  --bg-app: #0f0a1c;
+  --bg-sidebar: #18112d;
+  --bg-chat: #0f0a1c;
+  --bg-bubble-self: #a78bfa;
+  --bg-bubble-other: #18112d;
+  --bg-input: #18112d;
+  --border-color: #2b1f4c;
+  --color-text: #f3e8ff;
+  --color-text-muted: #c084fc;
+  --bg-pattern-dot: rgba(167, 139, 250, 0.08);
+  --tg-blue: #a78bfa;
+  --tg-darkBlue: #8b5cf6;
+}
+
+/* 6. Emerald Theme (Forest Green) */
+.theme-emerald {
+  --bg-app: #022c22;
+  --bg-sidebar: #064e3b;
+  --bg-chat: #022c22;
+  --bg-bubble-self: #10b981;
+  --bg-bubble-other: #064e3b;
+  --bg-input: #064e3b;
+  --border-color: #065f46;
+  --color-text: #ecfdf5;
+  --color-text-muted: #a7f3d0;
+  --bg-pattern-dot: rgba(16, 185, 129, 0.08);
+  --tg-blue: #10b981;
+  --tg-darkBlue: #059669;
+}
+
+/* 7. Corporate Theme (Slack/Teams Indigo-Slate) */
+.theme-corporate {
+  --bg-app: #0f172a;
+  --bg-sidebar: #1e293b;
+  --bg-chat: #0f172a;
+  --bg-bubble-self: #6366f1;
+  --bg-bubble-other: #1e293b;
+  --bg-input: #1e293b;
+  --border-color: #334155;
+  --color-text: #f8fafc;
+  --color-text-muted: #cbd5e1;
+  --bg-pattern-dot: rgba(99, 102, 241, 0.08);
+  --tg-blue: #6366f1;
+  --tg-darkBlue: #4f46e5;
 }
 
 body {
@@ -97,7 +204,7 @@ body {
   user-select: none;
   background-color: var(--bg-app);
   color: var(--color-text);
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Auto-themed form controls */
@@ -105,18 +212,18 @@ input[type="text"], input[type="email"], input[type="password"], input[type="dat
   background-color: var(--bg-input) !important;
   border-color: var(--border-color) !important;
   color: var(--color-text) !important;
-  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 ::placeholder {
   color: var(--color-text-muted) !important;
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
-/* Telegram Background pattern details */
+/* Chat Screen background grid */
 .tg-chat-bg {
   background-color: var(--bg-chat);
-  background-image: radial-gradient(var(--bg-pattern-dot) 1px, transparent 0);
-  background-size: 24px 24px;
-  transition: background-color 0.2s;
+  background-image: radial-gradient(var(--bg-pattern-dot) 1.2px, transparent 0);
+  background-size: 20px 20px;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
