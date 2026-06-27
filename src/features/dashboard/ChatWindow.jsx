@@ -556,7 +556,11 @@ export const ChatWindow = () => {
 
                 {/* Message Bubble container */}
                 <div
-                  className={`p-3 rounded-2xl relative shadow-md ${isSelf ? 'bg-tg-bubbleSelfDark text-white rounded-tr-none border border-tg-blue/15 shadow-tg-blue/5' : 'bg-tg-bubbleOtherDark text-tg-textDefault rounded-tl-none border border-tg-borderDark/60'}`}
+                  className={`p-3 rounded-2xl relative shadow-md ${
+                    isSelf 
+                      ? 'bg-tg-bubbleSelfDark text-white rounded-tr-none border border-tg-blue/15 shadow-tg-blue/5' 
+                      : 'bg-tg-bubbleOtherDark text-tg-textDefault rounded-tl-none border border-tg-borderDark/60'
+                  } ${msg.status === 'sending' ? 'animate-pulse opacity-75 border-dashed border-tg-blue/40' : ''}`}
                 >
                   {/* Chevron trigger dropdown */}
                   {!msg.isTemp && (
@@ -720,7 +724,15 @@ export const ChatWindow = () => {
                     {/* Delivery Status checkmarks */}
                     {isSelf && (
                       <span className="text-tg-blue ml-0.5" style={{ fontSize: '10px' }}>
-                        {msg.status === 'seen' ? <CheckIcon fontSize="inherit" className="font-bold" /> : msg.status === 'sending' ? <span className="inline-block animate-spin text-[8px] text-tg-textMuted">⌛</span> : msg.status === 'failed' ? <span className="text-red-500 font-bold">⚠️</span> : <CheckIcon fontSize="inherit" className="opacity-40" />}
+                        {msg.status === 'seen' ? (
+                          <CheckIcon fontSize="inherit" className="font-bold" />
+                        ) : msg.status === 'sending' ? (
+                          <span className="inline-block animate-spin w-2.5 h-2.5 border border-white/40 border-t-white rounded-full mr-0.5" />
+                        ) : msg.status === 'failed' ? (
+                          <span className="text-red-500 font-bold">⚠️</span>
+                        ) : (
+                          <CheckIcon fontSize="inherit" className="opacity-40" />
+                        )}
                       </span>
                     )}
                   </div>
