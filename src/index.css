@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(127, 145, 164, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(127, 145, 164, 0.4);
+}
+
+/* Glassmorphism Styles */
+.glass-panel {
+  background: rgba(23, 33, 43, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-panel-light {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+
+
+/* Micro-animations */
+@keyframes slideIn {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pulseBorder {
+  0%, 100% { border-color: rgba(36, 161, 222, 0.2); }
+  50% { border-color: rgba(36, 161, 222, 0.8); }
+}
+
+.animate-pulse-border {
+  animation: pulseBorder 2s infinite ease-in-out;
+}
+
+/* Base custom styles */
+:root {
+  /* Light Mode theme variables */
+  --bg-app: #f3f4f6;
+  --bg-sidebar: #ffffff;
+  --bg-chat: #e5ecd7;
+  --bg-bubble-self: #24a1de;
+  --bg-bubble-other: #ffffff;
+  --bg-input: #ffffff;
+  --border-color: #e5e7eb;
+  --color-text: #1f2937;
+  --color-text-muted: #6b7280;
+  --bg-pattern-dot: rgba(0, 0, 0, 0.04);
+}
+
+.dark {
+  /* Dark Mode theme variables */
+  --bg-app: #0e1621;
+  --bg-sidebar: #17212b;
+  --bg-chat: #182533;
+  --bg-bubble-self: #2b5278;
+  --bg-bubble-other: #182533;
+  --bg-input: #1f2937;
+  --border-color: #1c2935;
+  --color-text: #f8fafc;
+  --color-text-muted: #7f91a4;
+  --bg-pattern-dot: rgba(127, 145, 164, 0.1);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  user-select: none;
+  background-color: var(--bg-app);
+  color: var(--color-text);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* Auto-themed form controls */
+input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="datetime-local"], textarea, select {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border-color) !important;
+  color: var(--color-text) !important;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+::placeholder {
+  color: var(--color-text-muted) !important;
+  opacity: 0.6;
+}
+
+/* Telegram Background pattern details */
+.tg-chat-bg {
+  background-color: var(--bg-chat);
+  background-image: radial-gradient(var(--bg-pattern-dot) 1px, transparent 0);
+  background-size: 24px 24px;
+  transition: background-color 0.2s;
+}
