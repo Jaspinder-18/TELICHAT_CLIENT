@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { store } from '../redux/store.js';
 import { logoutUser, updateAccessToken } from '../redux/authSlice.js';
+import { setGlobalLoading } from '../redux/uiSlice.js';
 
 let defaultBaseURL = '/api';
 if (typeof window !== 'undefined') {
@@ -25,9 +26,20 @@ export const getFileUrl = (filePath) => {
   return `${baseUrl}${filePath}`;
 };
 
+// Global active request tracker
+let activeRequests = 0;
+const updateLoadingState = (delta) => {
+  activeRequests += delta;
+  if (activeRequests < 0) activeRequests = 0;
+  
+  // Update store state
+  store.dispatch(setGlobalLoading(activeRequests > 0));
+};
+
 // Request interceptor: add bearer token header
 api.interceptors.request.use(
   (config) => {
+    updateLoadingState(1);
     const state = store.getState();
     const token = state.auth.accessToken;
     if (token) {
@@ -35,13 +47,20 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    updateLoadingState(-1);
+    return Promise.reject(error);
+  }
 );
 
 // Response interceptor: handle token refresh transparently
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    updateLoadingState(-1);
+    return response;
+  },
   async (error) => {
+    updateLoadingState(-1);
     const originalRequest = error.config;
 
     // Check if error is 401 and not already retried

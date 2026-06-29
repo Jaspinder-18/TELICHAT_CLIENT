@@ -7,9 +7,12 @@ import {
   setTypingIndicator,
   updateMessageState,
   deleteMessageState,
-  updateGroup
+  updateGroup,
+  addGroup,
+  addChannel
 } from '../redux/chatSlice.js';
-import { setAlert } from '../redux/uiSlice.js';
+import { setAlert, setInAppNotification } from '../redux/uiSlice.js';
+import { store } from '../redux/store.js';
 
 const SocketContext = createContext(null);
 
@@ -53,15 +56,38 @@ export const SocketProvider = ({ children }) => {
       socket.on('receive-message', (message) => {
         dispatch(addMessage(message));
         
-        // Trigger browser notification if allowed and tab is backgrounded
-        if (
-          Notification.permission === 'granted' && 
-          message.sender._id !== user.id
-        ) {
-          new Notification(message.sender.firstName || `@${message.sender.username}`, {
-            body: message.type === 'file' ? 'Sent a file' : message.content,
-            icon: message.sender.profilePhoto || '/default-avatar.png'
-          });
+        const chatState = store.getState().chat;
+        const currentActiveChat = chatState.activeChat;
+        const currentActiveChatType = chatState.activeChatType;
+
+        const isFromActiveChat = currentActiveChat && (
+          (currentActiveChatType === 'user' && message.sender._id === currentActiveChat._id) ||
+          (currentActiveChatType === 'group' && message.recipientGroup === currentActiveChat._id) ||
+          (currentActiveChatType === 'channel' && message.recipientChannel === currentActiveChat._id)
+        );
+
+        if (message.sender._id !== user.id) {
+          // Trigger browser notification if allowed and tab is backgrounded
+          if (Notification.permission === 'granted' && document.hidden) {
+            new Notification(message.sender.firstName || `@${message.sender.username}`, {
+              body: message.type === 'file' ? '📁 Sent a file' : message.content,
+              icon: message.sender.profilePhoto || '/default-avatar.png'
+            });
+          }
+
+          // Trigger Telegram-style in-app notification if not actively chatting in this room
+          if (!isFromActiveChat) {
+            dispatch(setInAppNotification({
+              title: message.sender.firstName || `@${message.sender.username}`,
+              content: message.type === 'file' ? '📂 Sent a file' : message.content,
+              avatar: message.sender.profilePhoto,
+              chat: message.recipientGroup 
+                ? { chat: { _id: message.recipientGroup, name: message.groupName || 'Group' }, type: 'group' }
+                : message.recipientChannel
+                ? { chat: { _id: message.recipientChannel, name: message.channelName || 'Channel' }, type: 'channel' }
+                : { chat: message.sender, type: 'user' }
+            }));
+          }
         }
       });
 
@@ -93,6 +119,23 @@ export const SocketProvider = ({ children }) => {
       socket.on('user-joined-group', ({ group, userName }) => {
         dispatch(updateGroup(group));
         dispatch(setAlert({ message: `${userName} joined the group`, severity: 'info' }));
+      });
+
+      // Real-time additions
+      socket.on('group-created', (group) => {
+        dispatch(addGroup(group));
+        if (socketRef.current) {
+          socketRef.current.emit('join-room', group._id);
+        }
+        dispatch(setAlert({ message: `You were added to group: ${group.name}`, severity: 'success' }));
+      });
+
+      socket.on('channel-created', (channel) => {
+        dispatch(addChannel(channel));
+        if (socketRef.current) {
+          socketRef.current.emit('join-room', channel._id);
+        }
+        dispatch(setAlert({ message: `You subscribed to channel: ${channel.name}`, severity: 'success' }));
       });
 
       return () => {

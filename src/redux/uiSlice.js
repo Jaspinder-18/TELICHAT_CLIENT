@@ -5,6 +5,8 @@ const initialState = {
   rightSidebarOpen: false,
   leftSidebarTab: 'chats', // 'chats' | 'groups' | 'channels' | 'bots' | 'contacts' | 'files' | 'saved' | 'settings'
   alert: null, // { message: string, severity: 'success'|'error'|'info'|'warning' }
+  globalLoading: false,
+  inAppNotification: null, // { title, content, avatar, chat }
 };
 
 const uiSlice = createSlice({
@@ -43,6 +45,15 @@ const uiSlice = createSlice({
     },
     clearAlert: (state) => {
       state.alert = null;
+    },
+    setGlobalLoading: (state, action) => {
+      state.globalLoading = action.payload;
+    },
+    setInAppNotification: (state, action) => {
+      state.inAppNotification = action.payload;
+    },
+    clearInAppNotification: (state) => {
+      state.inAppNotification = null;
     }
   }
 });
@@ -53,7 +64,10 @@ export const {
   setRightSidebarOpen,
   setLeftSidebarTab,
   setAlert,
-  clearAlert
+  clearAlert,
+  setGlobalLoading,
+  setInAppNotification,
+  clearInAppNotification
 } = uiSlice.actions;
 
 export default uiSlice.reducer;

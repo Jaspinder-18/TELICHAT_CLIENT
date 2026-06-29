@@ -30,7 +30,7 @@ export const ChatWindow = () => {
   const dispatch = useDispatch();
   const { emitTyping } = useSocket();
 
-  const { activeChat, activeChatType, messages, typingUsers } = useSelector((state) => state.chat);
+  const { activeChat, activeChatType, messages, typingUsers, contacts } = useSelector((state) => state.chat);
   const { user } = useSelector((state) => state.auth);
   const { rightSidebarOpen } = useSelector((state) => state.ui);
 
@@ -411,6 +411,27 @@ export const ChatWindow = () => {
   const chatRoomId = activeChat?._id;
   const currentTypingUsers = typingUsers[chatRoomId] || [];
 
+  const getTypingText = () => {
+    if (currentTypingUsers.length === 0) return '';
+    if (activeChatType === 'user') return 'typing...';
+    
+    const names = currentTypingUsers.map(id => {
+      const member = activeChat.members?.find(m => (m.user?._id || m.user) === id);
+      if (member && member.user) {
+        return member.user.firstName || `@${member.user.username}`;
+      }
+      const contact = contacts?.find(c => c._id === id);
+      if (contact) {
+        return contact.firstName || `@${contact.username}`;
+      }
+      return 'Someone';
+    });
+    
+    if (names.length === 1) return `${names[0]} is typing...`;
+    if (names.length === 2) return `${names[0]} and ${names[1]} are typing...`;
+    return 'Multiple people are typing...';
+  };
+
   if (!activeChat) {
     return (
       <div className="flex-grow h-full flex flex-col items-center justify-center bg-tg-bgChatDark tg-chat-bg text-tg-textMuted select-none relative p-4">
@@ -452,11 +473,13 @@ export const ChatWindow = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-tg-blue/10 backdrop-blur-sm border-2 border-dashed border-tg-blue z-50 flex items-center justify-center pointer-events-none"
+            className="absolute inset-0 bg-tg-bgDark/80 backdrop-blur-md z-40 flex items-center justify-center pointer-events-none border-2 border-dashed border-tg-blue/40 m-4 rounded-3xl"
           >
-            <div className="bg-tg-bgSidebarDark/90 backdrop-blur-md p-7 rounded-3xl border border-tg-borderDark text-center shadow-2xl">
-              <AttachFileIcon className="text-tg-blue animate-bounce" fontSize="medium" />
-              <h4 className="text-sm font-bold text-tg-textDefault mt-3">Drop files to upload</h4>
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-tg-blue/10 border border-tg-blue/20 flex items-center justify-center text-tg-blue mx-auto animate-bounce">
+                <AttachFileIcon fontSize="medium" />
+              </div>
+              <h4 className="text-xs font-bold text-tg-textDefault uppercase tracking-wider">Drop files to send</h4>
               <p className="text-[10px] text-tg-textMuted mt-1 leading-normal">Supports images, docs, media up to 50MB</p>
             </div>
           </motion.div>
@@ -479,9 +502,15 @@ export const ChatWindow = () => {
                 ? (activeChat.firstName || activeChat.lastName ? `${activeChat.firstName || ''} ${activeChat.lastName || ''}`.trim() : `@${activeChat.username}`)
                 : activeChat.name}
             </h3>
-            <span className="text-[9px] text-tg-textMuted font-medium block mt-0.5">
-              {activeChatType === 'user' ? (activeChat.isOnline ? 'Online' : 'Offline') : activeChatType === 'group' ? `${activeChat.members?.length || 0} members • Group` : `${activeChat.subscribers?.length || 0} subscribers • Channel`}
-            </span>
+            {currentTypingUsers.length > 0 ? (
+              <span className="text-[9px] text-green-500 font-bold block mt-0.5 animate-pulse">
+                {getTypingText()}
+              </span>
+            ) : (
+              <span className="text-[9px] text-tg-textMuted font-medium block mt-0.5">
+                {activeChatType === 'user' ? (activeChat.isOnline ? 'Online' : 'Offline') : activeChatType === 'group' ? `${activeChat.members?.length || 0} members • Group` : `${activeChat.subscribers?.length || 0} subscribers • Channel`}
+              </span>
+            )}
           </div>
         </div>
 
