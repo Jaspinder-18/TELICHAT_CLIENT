@@ -1000,7 +1000,7 @@ const SettingsPanel = () => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
             onSubmit={handleSaveProfile}
-            className="space-y-4"
+            className="space-y-4 pr-3"
           >
             {/* Photo Upload */}
             <div className="flex flex-col items-center pt-2">
@@ -1107,7 +1107,7 @@ const SettingsPanel = () => {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
-            className="space-y-4"
+            className="space-y-4 pr-3"
           >
             <div className="text-[10px] uppercase font-bold text-tg-textMuted px-1 tracking-wider">
               Select Client Theme
@@ -1147,7 +1147,7 @@ const SettingsPanel = () => {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
-            className="space-y-4 pt-1"
+            className="space-y-4 pt-1 pr-3"
           >
             <NotificationSettings />
           </motion.div>
