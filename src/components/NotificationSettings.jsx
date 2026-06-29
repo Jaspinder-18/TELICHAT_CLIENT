@@ -36,81 +36,81 @@ export default function NotificationSettings() {
   ];
 
   return (
-    <div className="space-y-5 text-sm">
+    <div className="space-y-4 text-xs">
       {/* Global Mute / DND Switch */}
-      <div className="bg-tg-borderDark/20 p-4 rounded-xl border border-tg-borderDark/40 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <DoNotDisturbIcon className="text-red-500" />
-            <div>
-              <p className="font-semibold text-color-text">Do Not Disturb (DND)</p>
-              <p className="text-xs text-tg-textMuted">Silence all incoming alerts immediately</p>
+      <div className="bg-tg-borderDark/20 p-3 rounded-xl border border-tg-borderDark/40 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <DoNotDisturbIcon className="text-red-500 shrink-0" style={{ fontSize: '18px' }} />
+            <div className="min-w-0">
+              <p className="font-bold text-color-text text-[11px] truncate">Do Not Disturb (DND)</p>
+              <p className="text-[10px] text-tg-textMuted truncate">Mute all notifications</p>
             </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
             <input
               type="checkbox"
               checked={localSettings.dnd || false}
               onChange={(e) => handleChange('dnd', e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-9 h-5 bg-tg-borderDark/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tg-blue"></div>
+            <div className="w-8 h-4.5 bg-tg-borderDark/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-tg-blue"></div>
           </label>
         </div>
 
-        <div className="flex items-center justify-between border-t border-tg-borderDark/40 pt-4">
-          <div className="flex items-center gap-3">
-            <NotificationsActiveIcon className="text-tg-blue" />
-            <div>
-              <p className="font-semibold text-color-text">Global Notifications</p>
-              <p className="text-xs text-tg-textMuted">Enable push & socket message notifications</p>
+        <div className="flex items-center justify-between gap-2 border-t border-tg-borderDark/40 pt-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <NotificationsActiveIcon className="text-tg-blue shrink-0" style={{ fontSize: '18px' }} />
+            <div className="min-w-0">
+              <p className="font-bold text-color-text text-[11px] truncate">Global Notifications</p>
+              <p className="text-[10px] text-tg-textMuted truncate">Enable push alerts</p>
             </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
             <input
               type="checkbox"
               checked={localSettings.enabled ?? true}
               onChange={(e) => handleChange('enabled', e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-9 h-5 bg-tg-borderDark/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tg-blue"></div>
+            <div className="w-8 h-4.5 bg-tg-borderDark/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-tg-blue"></div>
           </label>
         </div>
       </div>
 
       {/* Media & Alert Preferences */}
-      <div className="bg-tg-borderDark/20 p-4 rounded-xl border border-tg-borderDark/40 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <VolumeUpIcon className="text-emerald-500" />
-            <div>
-              <p className="font-semibold text-color-text">Notification Sounds</p>
-              <p className="text-xs text-tg-textMuted">Play sounds for incoming alerts</p>
+      <div className="bg-tg-borderDark/20 p-3 rounded-xl border border-tg-borderDark/40 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <VolumeUpIcon className="text-emerald-500 shrink-0" style={{ fontSize: '18px' }} />
+            <div className="min-w-0">
+              <p className="font-bold text-color-text text-[11px] truncate">Notification Sounds</p>
+              <p className="text-[10px] text-tg-textMuted truncate">Play incoming sounds</p>
             </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
             <input
               type="checkbox"
               checked={localSettings.sound ?? true}
               onChange={(e) => handleChange('sound', e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-9 h-5 bg-tg-borderDark/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tg-blue"></div>
+            <div className="w-8 h-4.5 bg-tg-borderDark/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-tg-blue"></div>
           </label>
         </div>
 
-        <div className="flex items-center justify-between border-t border-tg-borderDark/40 pt-4">
-          <div className="flex items-center gap-3">
-            <RingVolumeIcon className="text-purple-400" />
-            <div>
-              <p className="font-semibold text-color-text">Custom Alert Tone</p>
-              <p className="text-xs text-tg-textMuted">Choose custom ringtone profiles</p>
+        <div className="flex items-center justify-between gap-2 border-t border-tg-borderDark/40 pt-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <RingVolumeIcon className="text-purple-400 shrink-0" style={{ fontSize: '18px' }} />
+            <div className="min-w-0">
+              <p className="font-bold text-color-text text-[11px] truncate">Custom Alert Tone</p>
+              <p className="text-[10px] text-tg-textMuted truncate">Ringtone profile</p>
             </div>
           </div>
           <select
             value={localSettings.customSound || 'default'}
             onChange={(e) => handleChange('customSound', e.target.value)}
-            className="bg-tg-chat border border-tg-borderDark/60 text-color-text text-xs rounded-lg focus:ring-tg-blue focus:border-tg-blue p-1.5 outline-none cursor-pointer"
+            className="bg-tg-chat border border-tg-borderDark/60 text-color-text text-[10px] rounded-lg focus:ring-tg-blue focus:border-tg-blue p-1 max-w-[100px] truncate outline-none cursor-pointer"
           >
             {sounds.map((sound) => (
               <option key={sound.value} value={sound.value}>
@@ -120,72 +120,72 @@ export default function NotificationSettings() {
           </select>
         </div>
 
-        <div className="flex items-center justify-between border-t border-tg-borderDark/40 pt-4">
-          <div className="flex items-center gap-3">
-            <VolumeOffIcon className="text-amber-500" />
-            <div>
-              <p className="font-semibold text-color-text">Desktop Banners</p>
-              <p className="text-xs text-tg-textMuted">Display OS toast popups</p>
+        <div className="flex items-center justify-between gap-2 border-t border-tg-borderDark/40 pt-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <VolumeOffIcon className="text-amber-500 shrink-0" style={{ fontSize: '18px' }} />
+            <div className="min-w-0">
+              <p className="font-bold text-color-text text-[11px] truncate">Desktop Banners</p>
+              <p className="text-[10px] text-tg-textMuted truncate">Display toast popups</p>
             </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
             <input
               type="checkbox"
               checked={localSettings.desktop ?? true}
               onChange={(e) => handleChange('desktop', e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-9 h-5 bg-tg-borderDark/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tg-blue"></div>
+            <div className="w-8 h-4.5 bg-tg-borderDark/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-tg-blue"></div>
           </label>
         </div>
       </div>
 
       {/* Quiet Hours Range */}
-      <div className="bg-tg-borderDark/20 p-4 rounded-xl border border-tg-borderDark/40 space-y-3">
-        <div className="flex items-center gap-3">
-          <AccessTimeIcon className="text-tg-blue" />
+      <div className="bg-tg-borderDark/20 p-3 rounded-xl border border-tg-borderDark/40 space-y-2.5">
+        <div className="flex items-center gap-2">
+          <AccessTimeIcon className="text-tg-blue shrink-0" style={{ fontSize: '18px' }} />
           <div>
-            <p className="font-semibold text-color-text">Quiet Hours Schedule</p>
-            <p className="text-xs text-tg-textMuted">Bypass non-critical alerts between times</p>
+            <p className="font-bold text-color-text text-[11px]">Quiet Hours Schedule</p>
+            <p className="text-[10px] text-tg-textMuted">Mute alerts between times</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-4 pt-2 justify-between">
-          <div className="flex flex-col gap-1 flex-1">
-            <label className="text-[10px] uppercase font-bold text-tg-textMuted">Start Time</label>
+        <div className="grid grid-cols-2 gap-2 pt-1.5">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[9px] uppercase font-bold text-tg-textMuted pl-0.5">Start</label>
             <input
               type="time"
               value={localSettings.quietHoursStart || '22:00'}
               onChange={(e) => handleChange('quietHoursStart', e.target.value)}
-              className="bg-tg-chat border border-tg-borderDark/60 text-color-text text-xs rounded-lg p-1.5 outline-none focus:ring-1 focus:ring-tg-blue"
+              className="bg-tg-chat border border-tg-borderDark/60 text-color-text text-[10px] rounded-lg p-1 outline-none focus:ring-1 focus:ring-tg-blue w-full"
             />
           </div>
-          <div className="flex flex-col gap-1 flex-1">
-            <label className="text-[10px] uppercase font-bold text-tg-textMuted">End Time</label>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[9px] uppercase font-bold text-tg-textMuted pl-0.5">End</label>
             <input
               type="time"
               value={localSettings.quietHoursEnd || '07:00'}
               onChange={(e) => handleChange('quietHoursEnd', e.target.value)}
-              className="bg-tg-chat border border-tg-borderDark/60 text-color-text text-xs rounded-lg p-1.5 outline-none focus:ring-1 focus:ring-tg-blue"
+              className="bg-tg-chat border border-tg-borderDark/60 text-color-text text-[10px] rounded-lg p-1 outline-none focus:ring-1 focus:ring-tg-blue w-full"
             />
           </div>
         </div>
       </div>
 
       {/* Filters (Mention-only toggles) */}
-      <div className="bg-tg-borderDark/20 p-4 rounded-xl border border-tg-borderDark/40 flex items-center justify-between">
-        <div className="flex flex-col">
-          <p className="font-semibold text-color-text">Mention Alert Mode</p>
-          <p className="text-xs text-tg-textMuted">Notify only on direct @username tags</p>
+      <div className="bg-tg-borderDark/20 p-3 rounded-xl border border-tg-borderDark/40 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-bold text-color-text text-[11px] truncate">Mention Alert Mode</p>
+          <p className="text-[10px] text-tg-textMuted truncate">Notify only on direct @tags</p>
         </div>
-        <label className="relative inline-flex items-center cursor-pointer">
+        <label className="relative inline-flex items-center cursor-pointer shrink-0">
           <input
             type="checkbox"
             checked={localSettings.mentionOnly || false}
             onChange={(e) => handleChange('mentionOnly', e.target.checked)}
             className="sr-only peer"
           />
-          <div className="w-9 h-5 bg-tg-borderDark/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tg-blue"></div>
+          <div className="w-8 h-4.5 bg-tg-borderDark/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-tg-blue"></div>
         </label>
       </div>
     </div>

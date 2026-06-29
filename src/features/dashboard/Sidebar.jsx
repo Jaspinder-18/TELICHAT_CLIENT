@@ -965,27 +965,27 @@ const SettingsPanel = () => {
       <div className="flex border-b border-tg-borderDark/60 pb-1 mb-2">
         <button
           onClick={() => setSettingsTab('profile')}
-          className={`flex-1 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider transition ${settingsTab === 'profile' ? 'text-tg-blue border-b-2 border-tg-blue' : 'text-tg-textMuted hover:text-tg-textDefault'}`}
+          className={`flex-1 py-1.5 text-center text-[9px] font-bold uppercase transition ${settingsTab === 'profile' ? 'text-tg-blue border-b-2 border-tg-blue' : 'text-tg-textMuted hover:text-tg-textDefault'}`}
         >
-          <div className="flex items-center justify-center gap-1.5">
+          <div className="flex items-center justify-center gap-1">
             <EditIcon style={{ fontSize: '11px' }} />
             Profile
           </div>
         </button>
         <button
           onClick={() => setSettingsTab('appearance')}
-          className={`flex-1 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider transition ${settingsTab === 'appearance' ? 'text-tg-blue border-b-2 border-tg-blue' : 'text-tg-textMuted hover:text-tg-textDefault'}`}
+          className={`flex-1 py-1.5 text-center text-[9px] font-bold uppercase transition ${settingsTab === 'appearance' ? 'text-tg-blue border-b-2 border-tg-blue' : 'text-tg-textMuted hover:text-tg-textDefault'}`}
         >
-          <div className="flex items-center justify-center gap-1.5">
+          <div className="flex items-center justify-center gap-1">
             <PaletteIcon style={{ fontSize: '11px' }} />
             Themes
           </div>
         </button>
         <button
           onClick={() => setSettingsTab('notifications')}
-          className={`flex-1 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider transition ${settingsTab === 'notifications' ? 'text-tg-blue border-b-2 border-tg-blue' : 'text-tg-textMuted hover:text-tg-textDefault'}`}
+          className={`flex-1 py-1.5 text-center text-[9px] font-bold uppercase transition ${settingsTab === 'notifications' ? 'text-tg-blue border-b-2 border-tg-blue' : 'text-tg-textMuted hover:text-tg-textDefault'}`}
         >
-          <div className="flex items-center justify-center gap-1.5">
+          <div className="flex items-center justify-center gap-1">
             <NotificationsIcon style={{ fontSize: '11px' }} />
             Alerts
           </div>
