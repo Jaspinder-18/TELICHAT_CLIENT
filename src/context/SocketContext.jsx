@@ -42,10 +42,20 @@ export const SocketProvider = ({ children }) => {
 
       socketRef.current = socket;
 
+      const announceOnline = () => {
+        if (socket.connected) {
+          console.log('Announcing online status...');
+          socket.emit('user-online', user.id);
+        }
+      };
+
       socket.on('connect', () => {
         console.log('Connected to chat server socket');
-        socket.emit('user-online', user.id);
+        announceOnline();
       });
+
+      // Announce immediately if already connected (e.g. context reloaded but socket kept alive)
+      announceOnline();
 
       // Listen for other users status changes
       socket.on('user-status-change', (data) => {

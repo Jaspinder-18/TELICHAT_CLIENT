@@ -123,6 +123,25 @@ const chatSlice = createSlice({
           state.contacts[contactIdx].lastSeen = new Date();
         }
       }
+
+      // Keep active chat header in sync
+      if (state.activeChat && state.activeChatType === 'user' && state.activeChat._id === userId) {
+        state.activeChat = { ...state.activeChat, isOnline };
+      }
+
+      // Keep group members in sync
+      if (state.activeChat && state.activeChatType === 'group' && state.activeChat.members) {
+        const updatedMembers = state.activeChat.members.map(m => {
+          if (m.user && (m.user._id === userId || m.user === userId)) {
+            return {
+              ...m,
+              user: typeof m.user === 'object' ? { ...m.user, isOnline } : m.user
+            };
+          }
+          return m;
+        });
+        state.activeChat = { ...state.activeChat, members: updatedMembers };
+      }
     },
     setOnlineUsersMap: (state, action) => {
       state.onlineUsers = action.payload;

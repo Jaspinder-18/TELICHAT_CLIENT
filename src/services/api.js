@@ -39,7 +39,9 @@ const updateLoadingState = (delta) => {
 // Request interceptor: add bearer token header
 api.interceptors.request.use(
   (config) => {
-    updateLoadingState(1);
+    if (config.method !== 'get') {
+      updateLoadingState(1);
+    }
     const state = store.getState();
     const token = state.auth.accessToken;
     if (token) {
@@ -48,7 +50,9 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    updateLoadingState(-1);
+    if (error.config && error.config.method !== 'get') {
+      updateLoadingState(-1);
+    }
     return Promise.reject(error);
   }
 );
@@ -56,11 +60,15 @@ api.interceptors.request.use(
 // Response interceptor: handle token refresh transparently
 api.interceptors.response.use(
   (response) => {
-    updateLoadingState(-1);
+    if (response.config && response.config.method !== 'get') {
+      updateLoadingState(-1);
+    }
     return response;
   },
   async (error) => {
-    updateLoadingState(-1);
+    if (error.config && error.config.method !== 'get') {
+      updateLoadingState(-1);
+    }
     const originalRequest = error.config;
 
     // Check if error is 401 and not already retried
