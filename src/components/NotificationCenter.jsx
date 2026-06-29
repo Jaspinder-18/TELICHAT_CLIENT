@@ -123,7 +123,7 @@ export default function NotificationCenter() {
           style={{ fontSize: '22px' }} 
         />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-tg-blue text-[9px] font-bold text-white ring-2 ring-tg-sidebar animate-pulse">
+          <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-tg-blue text-[9px] font-bold text-white ring-2 ring-tg-bgSidebarDark animate-pulse">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -131,7 +131,7 @@ export default function NotificationCenter() {
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2.5 w-85 bg-tg-sidebar border border-tg-borderDark/80 rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[500px] animate-slide-in">
+        <div className="absolute right-0 mt-2.5 w-85 bg-tg-bgSidebarDark border border-tg-borderDark/80 rounded-2xl shadow-2xl z-[999] overflow-hidden flex flex-col max-h-[500px] animate-slide-in">
           {/* Header */}
           <div className="p-3.5 border-b border-tg-borderDark/60 flex items-center justify-between bg-tg-borderDark/10">
             <h3 className="font-bold text-sm text-color-text">Notifications</h3>
