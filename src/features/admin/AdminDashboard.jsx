@@ -83,8 +83,9 @@ export const AdminDashboard = () => {
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-8 border-b border-tg-borderDark/60 pb-5 relative z-10">
         <div className="flex items-center gap-3">
-          <Link to="/" className="p-2.5 rounded-xl bg-tg-bgSidebarDark/80 hover:bg-tg-bgDark border border-tg-borderDark/60 text-tg-blue transition shadow-md">
-            <ArrowBackIcon fontSize="small" />
+          <Link to="/" className="p-2 py-1.5 px-3 rounded-xl bg-tg-bgSidebarDark/80 hover:bg-tg-bgDark border border-tg-borderDark/60 text-tg-blue transition shadow-md flex items-center gap-1.5 text-xs font-bold">
+            <ArrowBackIcon fontSize="inherit" style={{ fontSize: '13px' }} />
+            Exit Console
           </Link>
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2 tracking-tight">

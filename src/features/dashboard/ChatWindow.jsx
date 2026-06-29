@@ -60,6 +60,7 @@ export const ChatWindow = () => {
   const [menuCoords, setMenuCoords] = useState({ x: 0, y: 0 });
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const messageEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -196,6 +197,7 @@ export const ChatWindow = () => {
     e.preventDefault();
     if (!inputContent.trim()) return;
 
+    setIsSendingMessage(true);
     const tempId = `temp-${Date.now()}`;
     const payload = {
       recipientId: activeChat._id,
@@ -257,6 +259,8 @@ export const ChatWindow = () => {
         dispatch(updateChatMessage({ _id: tempId, status: 'failed' }));
       }
       dispatch(setAlert({ message: 'Failed to send message', severity: 'error' }));
+    } finally {
+      setIsSendingMessage(false);
     }
   };
 
@@ -905,9 +909,14 @@ export const ChatWindow = () => {
 
           <button
             type="submit"
-            className="p-2.5 bg-tg-blue hover:bg-tg-darkBlue text-white rounded-xl shadow-lg shadow-tg-blue/20 transition flex-shrink-0 active:scale-95 cursor-pointer"
+            disabled={isSendingMessage}
+            className="p-2.5 bg-tg-blue hover:bg-tg-darkBlue text-white rounded-xl shadow-lg shadow-tg-blue/20 transition flex-shrink-0 active:scale-95 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
           >
-            <SendIcon fontSize="small" />
+            {isSendingMessage ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <SendIcon fontSize="small" />
+            )}
           </button>
         </form>
       </div>

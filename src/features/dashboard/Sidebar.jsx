@@ -1068,6 +1068,20 @@ const SettingsPanel = () => {
             >
               {saving ? 'Saving...' : 'Save Profile Changes'}
             </motion.button>
+
+            {window.chrome?.webview && (
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                type="button"
+                onClick={() => {
+                  window.chrome.webview.postMessage("exit");
+                }}
+                className="w-full py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold rounded-xl transition active:scale-95 shadow-sm cursor-pointer mt-3"
+              >
+                Exit Desktop Application
+              </motion.button>
+            )}
           </motion.form>
         ) : (
           <motion.div
