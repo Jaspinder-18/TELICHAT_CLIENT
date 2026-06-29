@@ -318,6 +318,50 @@ export const RightPanel = () => {
                     </p>
                   </div>
 
+                  {/* Group Invite Link card for Admin */}
+                  {activeChatType === 'group' && isGroupAdmin && activeChat.inviteToken && (
+                    <div className="bg-tg-bgDark/35 border border-tg-borderDark/50 rounded-2xl p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] uppercase font-bold text-tg-textMuted block">Group Invite Link</span>
+                        <button
+                          onClick={() => {
+                            const inviteUrl = `${window.location.origin}/join/group/${activeChat.inviteToken}`;
+                            navigator.clipboard.writeText(inviteUrl);
+                            dispatch(setAlert({ message: 'Group invite link copied!', severity: 'success' }));
+                          }}
+                          className="text-[9px] text-tg-blue hover:underline font-bold uppercase cursor-pointer"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-tg-textDefault break-all font-mono leading-normal bg-black/15 p-2 rounded-xl border border-tg-borderDark/30">
+                        {`${window.location.origin}/join/group/${activeChat.inviteToken}`}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Channel Invite Link card for Creator */}
+                  {activeChatType === 'channel' && isChannelCreator && activeChat.inviteToken && (
+                    <div className="bg-tg-bgDark/35 border border-tg-borderDark/50 rounded-2xl p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] uppercase font-bold text-tg-textMuted block">Channel Invite Link</span>
+                        <button
+                          onClick={() => {
+                            const inviteUrl = `${window.location.origin}/join/channel/${activeChat.inviteToken}`;
+                            navigator.clipboard.writeText(inviteUrl);
+                            dispatch(setAlert({ message: 'Channel invite link copied!', severity: 'success' }));
+                          }}
+                          className="text-[9px] text-tg-blue hover:underline font-bold uppercase cursor-pointer"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-tg-textDefault break-all font-mono leading-normal bg-black/15 p-2 rounded-xl border border-tg-borderDark/30">
+                        {`${window.location.origin}/join/channel/${activeChat.inviteToken}`}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Group Edit form if admin/owner */}
                   {activeChatType === 'group' && isGroupAdmin && (
                     <div className="border-t border-tg-borderDark/50 pt-3">
