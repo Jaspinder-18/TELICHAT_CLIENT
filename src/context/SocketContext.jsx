@@ -148,6 +148,101 @@ export const SocketProvider = ({ children }) => {
         dispatch(setAlert({ message: `You subscribed to channel: ${channel.name}`, severity: 'success' }));
       });
 
+      // Real-time Notification Sync
+      socket.on('notifications-sync', ({ unreadCount }) => {
+        const { setUnreadCount } = import('../redux/notificationSlice.js').then((m) => {
+          dispatch(m.setUnreadCount(unreadCount));
+        });
+      });
+
+      // Handle new incoming notifications
+      socket.on('new-notification', async (payload) => {
+        const { appendNotification, incrementUnreadCount } = await import('../redux/notificationSlice.js');
+        dispatch(appendNotification(payload));
+        dispatch(incrementUnreadCount());
+
+        // Play alert sound based on user settings
+        try {
+          const soundName = payload.sound || 'default.mp3';
+          const playSynthBeep = () => {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            if (soundName.includes('call')) {
+              osc.frequency.setValueAtTime(600, ctx.currentTime);
+              gain.gain.setValueAtTime(0.1, ctx.currentTime);
+              osc.start();
+              osc.stop(ctx.currentTime + 0.35);
+            } else if (soundName.includes('mention')) {
+              osc.frequency.setValueAtTime(880, ctx.currentTime);
+              gain.gain.setValueAtTime(0.08, ctx.currentTime);
+              osc.start();
+              osc.stop(ctx.currentTime + 0.18);
+            } else {
+              osc.frequency.setValueAtTime(440, ctx.currentTime);
+              gain.gain.setValueAtTime(0.05, ctx.currentTime);
+              osc.start();
+              osc.stop(ctx.currentTime + 0.12);
+            }
+          };
+
+          const audio = new Audio(`/sounds/${soundName}`);
+          audio.play().catch(() => playSynthBeep());
+        } catch (e) {
+          console.log('Audio alert error:', e);
+        }
+
+        // Native notification popup
+        if (Notification.permission === 'granted' && document.hidden) {
+          new Notification(payload.title, {
+            body: payload.body,
+            icon: '/favicon.ico'
+          });
+        }
+      });
+
+      // Register Web Push subscription registry
+      const registerWebPush = async () => {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+          try {
+            const registration = await navigator.serviceWorker.ready;
+            const res = await api.get('/notifications/vapid-public-key');
+            const publicKey = res.data.publicKey;
+
+            const urlBase64ToUint8Array = (base64String) => {
+              const padding = '='.repeat((4 - base64String.length % 4) % 4);
+              const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+              const rawData = window.atob(base64);
+              const outputArray = new Uint8Array(rawData.length);
+              for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+              }
+              return outputArray;
+            };
+
+            const subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(publicKey)
+            });
+
+            await api.post('/notifications/subscribe', { subscription });
+          } catch (err) {
+            console.warn('[Web Push] Subscription failed:', err.message);
+          }
+        }
+      };
+      
+      // Request notifications permission and subscribe
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') registerWebPush();
+        });
+      } else if (Notification.permission === 'granted') {
+        registerWebPush();
+      }
+
       return () => {
         socket.disconnect();
         socketRef.current = null;

@@ -39,7 +39,14 @@ const updateLoadingState = (delta) => {
 // Request interceptor: add bearer token header
 api.interceptors.request.use(
   (config) => {
-    if (config.method !== 'get') {
+    const isBackgroundRequest = config.url && (
+      config.url.includes('/message') ||
+      config.url.includes('/post') ||
+      config.url.includes('/reaction') ||
+      config.url.includes('/typing') ||
+      config.url.includes('/vote')
+    );
+    if (config.method !== 'get' && !isBackgroundRequest) {
       updateLoadingState(1);
     }
     const state = store.getState();
@@ -50,7 +57,14 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    if (error.config && error.config.method !== 'get') {
+    const isBackgroundRequest = error.config && error.config.url && (
+      error.config.url.includes('/message') ||
+      error.config.url.includes('/post') ||
+      error.config.url.includes('/reaction') ||
+      error.config.url.includes('/typing') ||
+      error.config.url.includes('/vote')
+    );
+    if (error.config && error.config.method !== 'get' && !isBackgroundRequest) {
       updateLoadingState(-1);
     }
     return Promise.reject(error);
@@ -60,13 +74,27 @@ api.interceptors.request.use(
 // Response interceptor: handle token refresh transparently
 api.interceptors.response.use(
   (response) => {
-    if (response.config && response.config.method !== 'get') {
+    const isBackgroundRequest = response.config && response.config.url && (
+      response.config.url.includes('/message') ||
+      response.config.url.includes('/post') ||
+      response.config.url.includes('/reaction') ||
+      response.config.url.includes('/typing') ||
+      response.config.url.includes('/vote')
+    );
+    if (response.config && response.config.method !== 'get' && !isBackgroundRequest) {
       updateLoadingState(-1);
     }
     return response;
   },
   async (error) => {
-    if (error.config && error.config.method !== 'get') {
+    const isBackgroundRequest = error.config && error.config.url && (
+      error.config.url.includes('/message') ||
+      error.config.url.includes('/post') ||
+      error.config.url.includes('/reaction') ||
+      error.config.url.includes('/typing') ||
+      error.config.url.includes('/vote')
+    );
+    if (error.config && error.config.method !== 'get' && !isBackgroundRequest) {
       updateLoadingState(-1);
     }
     const originalRequest = error.config;

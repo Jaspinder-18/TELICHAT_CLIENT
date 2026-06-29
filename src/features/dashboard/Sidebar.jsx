@@ -7,6 +7,9 @@ import { logoutUser, updateUserProfile } from '../../redux/authSlice.js';
 import { setMyBots, addBot, removeBotState, updateBotTokenState } from '../../redux/botSlice.js';
 import api, { getFileUrl } from '../../services/api.js';
 import { useSocket } from '../../context/SocketContext.jsx';
+import NotificationCenter from '../../components/NotificationCenter';
+import NotificationSettings from '../../components/NotificationSettings';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 
 // MUI Icons
 import ChatIcon from '@mui/icons-material/Chat';
@@ -322,8 +325,8 @@ export const Sidebar = () => {
       <div className="flex-grow h-full flex flex-col z-10">
         {/* Search header bar */}
         {leftSidebarTab !== 'settings' && (
-          <div className="p-4 border-b border-tg-borderDark/50">
-            <div className="relative">
+          <div className="p-4 border-b border-tg-borderDark/50 flex items-center justify-between gap-3">
+            <div className="relative flex-grow">
               <SearchIcon className="absolute left-3 top-3 text-tg-textMuted" fontSize="inherit" style={{ fontSize: '14px' }} />
               <input
                 type="text"
@@ -333,6 +336,7 @@ export const Sidebar = () => {
                 className="w-full pl-9 pr-4 py-2 bg-tg-bgDark/60 border border-tg-borderDark/80 rounded-2xl focus:border-tg-blue focus:ring-1 focus:ring-tg-blue/20 focus:outline-none text-tg-textDefault text-xs placeholder-tg-textMuted/60 transition-all shadow-inner"
               />
             </div>
+            <NotificationCenter />
           </div>
         )}
 
@@ -977,10 +981,19 @@ const SettingsPanel = () => {
             Themes
           </div>
         </button>
+        <button
+          onClick={() => setSettingsTab('notifications')}
+          className={`flex-1 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider transition ${settingsTab === 'notifications' ? 'text-tg-blue border-b-2 border-tg-blue' : 'text-tg-textMuted hover:text-tg-textDefault'}`}
+        >
+          <div className="flex items-center justify-center gap-1.5">
+            <NotificationsIcon style={{ fontSize: '11px' }} />
+            Alerts
+          </div>
+        </button>
       </div>
 
       <AnimatePresence mode="wait">
-        {settingsTab === 'profile' ? (
+        {settingsTab === 'profile' && (
           <motion.form
             key="profileTab"
             initial={{ opacity: 0, x: -10 }}
@@ -1086,7 +1099,9 @@ const SettingsPanel = () => {
               </motion.button>
             )}
           </motion.form>
-        ) : (
+        )}
+
+        {settingsTab === 'appearance' && (
           <motion.div
             key="appearanceTab"
             initial={{ opacity: 0, x: -10 }}
@@ -1123,6 +1138,18 @@ const SettingsPanel = () => {
                 );
               })}
             </div>
+          </motion.div>
+        )}
+
+        {settingsTab === 'notifications' && (
+          <motion.div
+            key="notificationsTab"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            className="space-y-4 pt-1"
+          >
+            <NotificationSettings />
           </motion.div>
         )}
       </AnimatePresence>
