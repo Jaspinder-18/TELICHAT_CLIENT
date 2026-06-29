@@ -13,6 +13,11 @@ import {
 } from '../redux/chatSlice.js';
 import { setAlert, setInAppNotification } from '../redux/uiSlice.js';
 import { store } from '../redux/store.js';
+import {
+  setUnreadCount,
+  incrementUnreadCount,
+  appendNotification
+} from '../redux/notificationSlice.js';
 
 const SocketContext = createContext(null);
 
@@ -150,14 +155,11 @@ export const SocketProvider = ({ children }) => {
 
       // Real-time Notification Sync
       socket.on('notifications-sync', ({ unreadCount }) => {
-        const { setUnreadCount } = import('../redux/notificationSlice.js').then((m) => {
-          dispatch(m.setUnreadCount(unreadCount));
-        });
+        dispatch(setUnreadCount(unreadCount));
       });
 
       // Handle new incoming notifications
-      socket.on('new-notification', async (payload) => {
-        const { appendNotification, incrementUnreadCount } = await import('../redux/notificationSlice.js');
+      socket.on('new-notification', (payload) => {
         dispatch(appendNotification(payload));
         dispatch(incrementUnreadCount());
 
@@ -195,7 +197,7 @@ export const SocketProvider = ({ children }) => {
         }
 
         // Native notification popup
-        if (Notification.permission === 'granted' && document.hidden) {
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.hidden) {
           new Notification(payload.title, {
             body: payload.body,
             icon: '/favicon.ico'
@@ -235,12 +237,14 @@ export const SocketProvider = ({ children }) => {
       };
       
       // Request notifications permission and subscribe
-      if (Notification.permission === 'default') {
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') registerWebPush();
-        });
-      } else if (Notification.permission === 'granted') {
-        registerWebPush();
+      if (typeof Notification !== 'undefined') {
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') registerWebPush();
+          });
+        } else if (Notification.permission === 'granted') {
+          registerWebPush();
+        }
       }
 
       return () => {
