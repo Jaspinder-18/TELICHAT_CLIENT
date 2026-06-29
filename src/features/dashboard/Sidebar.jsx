@@ -950,7 +950,10 @@ const SettingsPanel = () => {
     { id: 'blue', name: 'Ocean Blue', colors: ['#1c2541', '#3a506b', '#00b4d8'] },
     { id: 'purple', name: 'Cyber Purple', colors: ['#18112d', '#2b1f4c', '#a78bfa'] },
     { id: 'emerald', name: 'Forest Green', colors: ['#064e3b', '#065f46', '#10b981'] },
-    { id: 'corporate', name: 'Corporate', colors: ['#1e293b', '#334155', '#6366f1'] }
+    { id: 'corporate', name: 'Corporate', colors: ['#1e293b', '#334155', '#6366f1'] },
+    { id: 'sunset', name: 'Sunset Rose', colors: ['#180d12', '#24141c', '#f43f5e'] },
+    { id: 'matrix', name: 'Matrix Terminal', colors: ['#030a05', '#06140a', '#10b981'] },
+    { id: 'orange', name: 'Cyber Orange', colors: ['#13171c', '#1b2028', '#f97316'] }
   ];
 
   return (

@@ -199,6 +199,54 @@
   --tg-darkBlue: #4f46e5;
 }
 
+/* 8. Sunset Rose Theme (Warm Amber/Red) */
+.theme-sunset {
+  --bg-app: #180d12;
+  --bg-sidebar: #24141c;
+  --bg-chat: #180d12;
+  --bg-bubble-self: #f43f5e;
+  --bg-bubble-other: #24141c;
+  --bg-input: #24141c;
+  --border-color: #3b1d2c;
+  --color-text: #fff1f2;
+  --color-text-muted: #fda4af;
+  --bg-pattern-dot: rgba(244, 63, 94, 0.08);
+  --tg-blue: #f43f5e;
+  --tg-darkBlue: #e11d48;
+}
+
+/* 9. Matrix Terminal Theme (Retro Neon Green) */
+.theme-matrix {
+  --bg-app: #030a05;
+  --bg-sidebar: #06140a;
+  --bg-chat: #030a05;
+  --bg-bubble-self: #10b981;
+  --bg-bubble-other: #06140a;
+  --bg-input: #06140a;
+  --border-color: #0b2e16;
+  --color-text: #d1fae5;
+  --color-text-muted: #34d399;
+  --bg-pattern-dot: rgba(16, 185, 129, 0.1);
+  --tg-blue: #10b981;
+  --tg-darkBlue: #059669;
+}
+
+/* 10. Cyber Orange Theme (Neon Orange/Slate) */
+.theme-orange {
+  --bg-app: #13171c;
+  --bg-sidebar: #1b2028;
+  --bg-chat: #13171c;
+  --bg-bubble-self: #f97316;
+  --bg-bubble-other: #1b2028;
+  --bg-input: #1b2028;
+  --border-color: #2b333f;
+  --color-text: #fff7ed;
+  --color-text-muted: #fdba74;
+  --bg-pattern-dot: rgba(249, 115, 22, 0.08);
+  --tg-blue: #f97316;
+  --tg-darkBlue: #ea580c;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   user-select: none;
