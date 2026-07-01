@@ -223,7 +223,7 @@ const AIAssistantDrawer = ({ isOpen, onClose, activeChat, activeChatType }) => {
                 <div
                   className={`p-3 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed shadow ${
                     m.sender === 'user'
-                      ? 'bg-tg-themeBlue text-white rounded-tr-none'
+                      ? 'bg-tg-blue text-white rounded-tr-none'
                       : 'bg-tg-bgDark/30 text-tg-textDefault rounded-tl-none border border-tg-borderDark'
                   }`}
                 >
