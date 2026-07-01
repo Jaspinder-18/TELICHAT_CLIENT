@@ -12,6 +12,39 @@ import {
   BubbleChart
 } from '@mui/icons-material';
 
+const CountdownText = ({ text }) => {
+  const match = text.match(/\[COUNTDOWN:(\d+)\]/);
+  const initialSeconds = match ? parseInt(match[1]) : 0;
+  const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
+
+  useEffect(() => {
+    if (secondsLeft <= 0) return;
+    const interval = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [secondsLeft]);
+
+  if (!match) return <span>{text}</span>;
+
+  const parts = text.split(/\[COUNTDOWN:\d+\]/);
+  return (
+    <span>
+      {parts[0]}
+      <span className="font-bold text-tg-themeAmber font-mono px-1">
+        {secondsLeft > 0 ? `${secondsLeft}s` : 'ready'}
+      </span>
+      {parts[1]}
+    </span>
+  );
+};
+
 const AIAssistantDrawer = ({ isOpen, onClose, activeChat, activeChatType }) => {
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState([
@@ -194,7 +227,7 @@ const AIAssistantDrawer = ({ isOpen, onClose, activeChat, activeChatType }) => {
                       : 'bg-tg-bgDark/30 text-tg-textDefault rounded-tl-none border border-tg-borderDark'
                   }`}
                 >
-                  {m.text}
+                  <CountdownText text={m.text} />
                 </div>
               </div>
             ))}
