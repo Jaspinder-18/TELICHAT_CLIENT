@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
-import { setRightSidebarOpen, setAlert } from '../../redux/uiSlice.js';
+import { setRightSidebarOpen, setAlert, setAiDrawerOpen } from '../../redux/uiSlice.js';
 import { setMessages as setChatMessages, addMessage as addChatMessage, updateMessageState as updateChatMessage, deleteMessageState, setActiveChat } from '../../redux/chatSlice.js';
 import api, { getFileUrl } from '../../services/api.js';
 import { useSocket } from '../../context/SocketContext.jsx';
@@ -25,6 +25,8 @@ import CheckIcon from '@mui/icons-material/Check';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
+import TranslateIcon from '@mui/icons-material/Translate';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 
 export const ChatWindow = () => {
   const dispatch = useDispatch();
@@ -61,6 +63,28 @@ export const ChatWindow = () => {
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  const [translatedMessages, setTranslatedMessages] = useState({});
+
+  const handleTranslateMessage = async (msgId, text) => {
+    try {
+      const res = await api.post('/ai/translate', {
+        text,
+        targetLanguage: 'English'
+      });
+      setTranslatedMessages(prev => ({ ...prev, [msgId]: res.data.translation }));
+    } catch (err) {
+      dispatch(setAlert({ message: 'Translation failed: ' + err.message, severity: 'error' }));
+    }
+  };
+
+  const handleToggleOriginal = (msgId) => {
+    setTranslatedMessages(prev => {
+      const copy = { ...prev };
+      delete copy[msgId];
+      return copy;
+    });
+  };
 
   const messageEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -515,6 +539,15 @@ export const ChatWindow = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* AI Workspace Assistant Header Button */}
+          <button
+            onClick={() => dispatch(setAiDrawerOpen(true))}
+            className="p-2 rounded-xl text-tg-textMuted hover:bg-tg-bgDark hover:text-tg-textDefault transition flex items-center justify-center"
+            title="Open AI Workspace Assistant"
+          >
+            <SmartToyIcon fontSize="small" className="text-tg-themeBlue" />
+          </button>
+
           <button
             onClick={() => dispatch(setRightSidebarOpen(!rightSidebarOpen))}
             className={`p-2 rounded-xl transition ${rightSidebarOpen ? 'bg-tg-blue/10 text-tg-blue border border-tg-blue/20' : 'text-tg-textMuted hover:bg-tg-bgDark'}`}
@@ -602,8 +635,18 @@ export const ChatWindow = () => {
                         e.preventDefault();
                         e.stopPropagation();
                         const rect = e.currentTarget.getBoundingClientRect();
+                        const menuWidth = 200;
+                        const menuHeight = 280;
+                        let x = rect.left;
+                        let y = rect.bottom + 5;
+                        if (x + menuWidth > window.innerWidth) {
+                          x = window.innerWidth - menuWidth - 16;
+                        }
+                        if (y + menuHeight > window.innerHeight) {
+                          y = Math.max(10, rect.top - menuHeight - 5);
+                        }
                         setActiveMenuMsg(msg);
-                        setMenuCoords({ x: rect.left, y: rect.bottom + 5 });
+                        setMenuCoords({ x, y });
                       }}
                       className="absolute top-1.5 right-1.5 p-0.5 rounded text-tg-textMuted bg-black/10 hover:bg-black/20 hover:text-tg-textDefault opacity-0 group-hover:opacity-100 transition z-10"
                       title="Options"
@@ -744,8 +787,22 @@ export const ChatWindow = () => {
                     </div>
                   )}
 
-                  {/* Plain Text content */}
-                  {msg.type !== 'poll' && <p className="text-xs text-left leading-normal">{msg.content}</p>}
+                  {/* Plain Text content with translation toggle */}
+                  {msg.type !== 'poll' && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-left leading-normal">
+                        {translatedMessages[msg._id] ? translatedMessages[msg._id] : msg.content}
+                      </p>
+                      {translatedMessages[msg._id] && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleToggleOriginal(msg._id); }}
+                          className="text-[9px] text-tg-blue hover:underline font-bold block"
+                        >
+                          Show Original
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {/* Bubble footer bar */}
                   <div className="flex items-center justify-end gap-1 mt-1">
@@ -1020,6 +1077,17 @@ export const ChatWindow = () => {
             >
               <PushPinIcon fontSize="inherit" className="text-tg-blue" style={{ fontSize: '13px' }} />
               Pin Message
+            </button>
+
+            <button
+              onClick={() => {
+                handleTranslateMessage(activeMenuMsg._id, activeMenuMsg.content);
+                setActiveMenuMsg(null);
+              }}
+              className="w-full flex items-center gap-3 px-2 py-1.5 text-xs text-tg-textDefault hover:bg-tg-bgDark rounded-xl transition"
+            >
+              <TranslateIcon fontSize="inherit" className="text-tg-blue" style={{ fontSize: '13px' }} />
+              Translate Message
             </button>
 
             {!activeMenuMsg.isTemp && (

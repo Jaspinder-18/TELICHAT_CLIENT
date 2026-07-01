@@ -30,6 +30,10 @@ import LinkIcon from '@mui/icons-material/Link';
 import EditIcon from '@mui/icons-material/Edit';
 import PaletteIcon from '@mui/icons-material/Palette';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
+import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
+import BarChartIcon from '@mui/icons-material/BarChart';
 
 export const Sidebar = () => {
   const dispatch = useDispatch();
@@ -264,6 +268,10 @@ export const Sidebar = () => {
     { id: 'channels', icon: <CampaignIcon fontSize="small" />, label: 'Channels' },
     { id: 'bots', icon: <SmartToyIcon fontSize="small" />, label: 'Bots' },
     { id: 'contacts', icon: <ContactsIcon fontSize="small" />, label: 'Corporate' },
+    { id: 'tasks', icon: <AssignmentIcon fontSize="small" />, label: 'Tasks' },
+    { id: 'approvals', icon: <AssignmentTurnedInIcon fontSize="small" />, label: 'Approvals' },
+    { id: 'workflows', icon: <SettingsSuggestIcon fontSize="small" />, label: 'Automations' },
+    { id: 'productivity', icon: <BarChartIcon fontSize="small" />, label: 'Productivity' },
     { id: 'settings', icon: <SettingsIcon fontSize="small" />, label: 'Settings' }
   ];
 
@@ -286,7 +294,7 @@ export const Sidebar = () => {
             )}
           </motion.div>
 
-          <div className="flex flex-col gap-3 w-full px-2 relative">
+          <div className="flex flex-col gap-2.5 w-full px-1 relative overflow-y-auto max-h-[60vh] scrollbar-none">
             {tabItems.map((tab) => {
               const active = leftSidebarTab === tab.id;
               return (

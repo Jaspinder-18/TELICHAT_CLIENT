@@ -7,6 +7,7 @@ const initialState = {
   alert: null, // { message: string, severity: 'success'|'error'|'info'|'warning' }
   globalLoading: false,
   inAppNotification: null, // { title, content, avatar, chat }
+  aiDrawerOpen: false,
 };
 
 const uiSlice = createSlice({
@@ -54,6 +55,9 @@ const uiSlice = createSlice({
     },
     clearInAppNotification: (state) => {
       state.inAppNotification = null;
+    },
+    setAiDrawerOpen: (state, action) => {
+      state.aiDrawerOpen = action.payload;
     }
   }
 });
@@ -67,7 +71,8 @@ export const {
   clearAlert,
   setGlobalLoading,
   setInAppNotification,
-  clearInAppNotification
+  clearInAppNotification,
+  setAiDrawerOpen
 } = uiSlice.actions;
 
 export default uiSlice.reducer;

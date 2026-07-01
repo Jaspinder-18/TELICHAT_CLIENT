@@ -22,6 +22,14 @@ import ForgotPassword from './features/auth/ForgotPassword.jsx';
 import Sidebar from './features/dashboard/Sidebar.jsx';
 import ChatWindow from './features/dashboard/ChatWindow.jsx';
 import RightPanel from './features/dashboard/RightPanel.jsx';
+import TaskDashboard from './features/dashboard/TaskDashboard.jsx';
+import ApprovalCenter from './features/dashboard/ApprovalCenter.jsx';
+import WorkflowBuilder from './features/dashboard/WorkflowBuilder.jsx';
+import ProductivityPanel from './features/dashboard/ProductivityPanel.jsx';
+import CommandPalette from './components/CommandPalette.jsx';
+import AIAssistantDrawer from './components/AIAssistantDrawer.jsx';
+import { setLeftSidebarTab, setAiDrawerOpen } from './redux/uiSlice.js';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 
 // Admin panel component
 import AdminDashboard from './features/admin/AdminDashboard.jsx';
@@ -36,29 +44,93 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const MainDashboardLayout = () => {
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { activeChat } = useSelector((state) => state.chat);
+  const { activeChat, activeChatType, contacts, myGroups } = useSelector((state) => state.chat);
+  const { leftSidebarTab, rightSidebarOpen, aiDrawerOpen } = useSelector((state) => state.ui);
+
+  const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
+
+  // Monitor Ctrl+K / Cmd+K global shortcuts
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const renderMainContent = () => {
+    switch (leftSidebarTab) {
+      case 'tasks':
+        return <TaskDashboard user={user} />;
+      case 'approvals':
+        return <ApprovalCenter user={user} contacts={contacts} />;
+      case 'workflows':
+        return <WorkflowBuilder user={user} />;
+      case 'productivity':
+        return <ProductivityPanel user={user} />;
+      default:
+        return <ChatWindow />;
+    }
+  };
+
   return (
     <SocketProvider>
       <div className="h-screen w-screen flex bg-tg-bgDark overflow-hidden relative">
         {/* Left pane containing sidebar */}
-        <div className={`h-full w-full md:w-[320px] flex-shrink-0 ${activeChat ? 'hidden md:block' : 'block'}`}>
+        <div className={`h-full w-full md:w-[320px] flex-shrink-0 ${activeChat && leftSidebarTab === 'chats' ? 'hidden md:block' : 'block'}`}>
           <Sidebar />
         </div>
         
-        {/* Central main chat view */}
-        <div className={`h-full flex-grow ${activeChat ? 'block' : 'hidden md:block'}`}>
-          <ChatWindow />
+        {/* Central main view */}
+        <div className={`h-full flex-grow ${activeChat && leftSidebarTab === 'chats' ? 'block' : 'hidden md:block'}`}>
+          {renderMainContent()}
         </div>
         
         {/* Optional Right panel for info gallery */}
-        <div className="h-full z-30 flex-shrink-0 absolute right-0 md:relative">
-          <RightPanel />
-        </div>
+        {leftSidebarTab === 'chats' && (
+          <div className="h-full z-30 flex-shrink-0 absolute right-0 md:relative">
+            <RightPanel />
+          </div>
+        )}
+
+        {/* Command Palette Overlay */}
+        <CommandPalette
+          isOpen={commandPaletteOpen}
+          onClose={() => setCommandPaletteOpen(false)}
+          onSelectAction={(item) => {
+            if (item.id === 'goto_tasks') dispatch(setLeftSidebarTab('tasks'));
+            else if (item.id === 'goto_approvals') dispatch(setLeftSidebarTab('approvals'));
+            else if (item.id === 'goto_workflow') dispatch(setLeftSidebarTab('workflows'));
+            else if (item.id === 'ai_translate_tool') dispatch(setAiDrawerOpen(true));
+            else if (item.id.startsWith('contact_')) {
+              dispatch(setActiveChat({ chat: item.data, type: 'user' }));
+              dispatch(setLeftSidebarTab('chats'));
+            }
+            else if (item.id.startsWith('group_')) {
+              dispatch(setActiveChat({ chat: item.data, type: 'group' }));
+              dispatch(setLeftSidebarTab('chats'));
+            }
+          }}
+          contacts={contacts}
+          groups={myGroups}
+        />
+
+        {/* AI Assistant Drawer */}
+        <AIAssistantDrawer
+          isOpen={aiDrawerOpen}
+          onClose={() => dispatch(setAiDrawerOpen(false))}
+          activeChat={activeChat}
+          activeChatType={activeChatType}
+        />
 
         {/* Floating admin link if user is administrator */}
         {user?.role === 'admin' && (
-          <div className="absolute bottom-4 right-4 z-40">
+          <div className="absolute bottom-4 left-[340px] z-40">
             <NavigateButton />
           </div>
         )}
