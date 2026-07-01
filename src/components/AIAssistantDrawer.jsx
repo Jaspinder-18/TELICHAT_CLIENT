@@ -121,25 +121,25 @@ const AIAssistantDrawer = ({ isOpen, onClose, activeChat, activeChatType }) => {
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed right-0 top-0 bottom-0 w-[420px] bg-tg-bgSidebarDark/90 backdrop-blur-xl border-l border-white/10 text-white z-[9999] flex flex-col shadow-2xl"
+          className="fixed right-0 top-0 bottom-0 w-[420px] bg-tg-bgSidebarDark/95 backdrop-blur-xl border-l border-tg-borderDark text-tg-textDefault z-[9999] flex flex-col shadow-2xl"
         >
           {/* Header */}
-          <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
+          <div className="p-4 border-b border-tg-borderDark flex items-center justify-between bg-tg-bgDark/20">
             <div className="flex items-center gap-2">
               <SmartToy className="text-tg-primary text-tg-themeBlue" />
               <span className="font-semibold text-lg">AI Workspace Assistant</span>
             </div>
-            <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-colors">
+            <button onClick={onClose} className="p-1 hover:bg-tg-bgDark/60 rounded-full text-tg-textMuted hover:text-tg-textDefault transition-colors">
               <Close />
             </button>
           </div>
 
           {/* Quick AI Action Tools */}
-          <div className="p-3 bg-white/5 border-b border-white/10 grid grid-cols-2 gap-2">
+          <div className="p-3 bg-tg-bgDark/20 border-b border-tg-borderDark grid grid-cols-2 gap-2">
             <button
               onClick={handleSummarize}
               disabled={loading || !activeChat}
-              className="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium transition-all disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-tg-bgDark/30 hover:bg-tg-bgDark/60 border border-tg-borderDark text-tg-textDefault text-xs font-medium transition-all disabled:opacity-50"
             >
               <Summarize className="text-tg-themeBlue !text-base" />
               Summarize Chat
@@ -147,7 +147,7 @@ const AIAssistantDrawer = ({ isOpen, onClose, activeChat, activeChatType }) => {
             <button
               onClick={handleGenerateEmail}
               disabled={loading}
-              className="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium transition-all disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 p-2 rounded-lg bg-tg-bgDark/30 hover:bg-tg-bgDark/60 border border-tg-borderDark text-tg-textDefault text-xs font-medium transition-all disabled:opacity-50"
             >
               <Email className="text-tg-themeGreen !text-base" />
               Draft Email
@@ -157,7 +157,7 @@ const AIAssistantDrawer = ({ isOpen, onClose, activeChat, activeChatType }) => {
               <button
                 onClick={handleTranslateChat}
                 disabled={loading}
-                className="flex items-center gap-1.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium transition-all flex-1"
+                className="flex items-center gap-1.5 p-2 rounded-lg bg-tg-bgDark/30 hover:bg-tg-bgDark/60 border border-tg-borderDark text-tg-textDefault text-xs font-medium transition-all flex-1"
               >
                 <Translate className="text-tg-themeAmber !text-base" />
                 Translate Last Msg
@@ -165,7 +165,7 @@ const AIAssistantDrawer = ({ isOpen, onClose, activeChat, activeChatType }) => {
               <select
                 value={selectedLang}
                 onChange={(e) => setSelectedLang(e.target.value)}
-                className="bg-tg-bgSidebarDark border border-white/10 rounded-lg p-1.5 text-xs text-white outline-none cursor-pointer"
+                className="bg-tg-bgSidebarDark border border-tg-borderDark rounded-lg p-1.5 text-xs text-tg-textDefault outline-none cursor-pointer"
               >
                 <option value="Hindi">Hindi</option>
                 <option value="Punjabi">Punjabi</option>
@@ -191,7 +191,7 @@ const AIAssistantDrawer = ({ isOpen, onClose, activeChat, activeChatType }) => {
                   className={`p-3 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed shadow ${
                     m.sender === 'user'
                       ? 'bg-tg-themeBlue text-white rounded-tr-none'
-                      : 'bg-white/10 text-slate-100 rounded-tl-none border border-white/5'
+                      : 'bg-tg-bgDark/30 text-tg-textDefault rounded-tl-none border border-tg-borderDark'
                   }`}
                 >
                   {m.text}
@@ -199,7 +199,7 @@ const AIAssistantDrawer = ({ isOpen, onClose, activeChat, activeChatType }) => {
               </div>
             ))}
             {loading && (
-              <div className="flex items-center gap-2 text-xs text-white/50 animate-pulse">
+              <div className="flex items-center gap-2 text-xs text-tg-textMuted animate-pulse">
                 <BubbleChart className="animate-spin text-tg-themeBlue" />
                 Assistant is thinking...
               </div>
@@ -207,13 +207,13 @@ const AIAssistantDrawer = ({ isOpen, onClose, activeChat, activeChatType }) => {
           </div>
 
           {/* Prompt Entry Box */}
-          <form onSubmit={handleSendPrompt} className="p-4 border-t border-white/10 bg-white/5 flex gap-2">
+          <form onSubmit={handleSendPrompt} className="p-4 border-t border-tg-borderDark bg-tg-bgDark/20 flex gap-2">
             <input
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Ask anything about this chat or task..."
-              className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-tg-themeBlue transition-all"
+              className="flex-1 bg-tg-bgDark/30 border border-tg-borderDark rounded-xl px-4 py-2 text-sm text-tg-textDefault placeholder-tg-textMuted focus:outline-none focus:border-tg-themeBlue transition-all"
             />
             <button
               type="submit"
