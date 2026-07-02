@@ -50,7 +50,7 @@ export const SocketProvider = ({ children }) => {
       const announceOnline = () => {
         if (socket.connected) {
           console.log('Announcing online status...');
-          socket.emit('user-online', user.id);
+          socket.emit('user-online', user?.id || user?._id);
         }
       };
 
@@ -81,7 +81,7 @@ export const SocketProvider = ({ children }) => {
           (currentActiveChatType === 'channel' && message.recipientChannel === currentActiveChat._id)
         );
 
-        if (message.sender._id !== user.id) {
+        if (message.sender._id !== (user?.id || user?._id)) {
           // Trigger browser notification if allowed and tab is backgrounded
           if (Notification.permission === 'granted' && document.hidden) {
             new Notification(message.sender.firstName || `@${message.sender.username}`, {
@@ -258,7 +258,7 @@ export const SocketProvider = ({ children }) => {
     if (socketRef.current && user) {
       const event = isTyping ? 'typing' : 'stop-typing';
       socketRef.current.emit(event, {
-        senderId: user.id,
+        senderId: user?.id || user?._id,
         recipientId,
         recipientType
       });

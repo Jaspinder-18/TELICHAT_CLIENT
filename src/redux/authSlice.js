@@ -12,11 +12,13 @@ const getSafeUser = () => {
   }
 };
 
+const safeUser = getSafeUser();
+
 const initialState = {
-  user: getSafeUser(),
+  user: safeUser,
   accessToken: localStorage.getItem('accessToken') || null,
   refreshToken: localStorage.getItem('refreshToken') || null,
-  isAuthenticated: !!localStorage.getItem('accessToken'),
+  isAuthenticated: !!localStorage.getItem('accessToken') && !!safeUser,
   loading: false,
   error: null,
 };
