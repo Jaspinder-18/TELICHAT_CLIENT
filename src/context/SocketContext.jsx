@@ -95,7 +95,7 @@ export const SocketProvider = ({ children }) => {
           const notifyBody = message.type === 'file' ? '📁 Sent a file' : message.content;
 
           // 1. Android APK JS bridge notification (shows on lockscreen and top banner)
-          if (window.NotificationChannel && !isFromActiveChat) {
+          if (window.NotificationChannel && (document.hidden || !isFromActiveChat)) {
             try {
               window.NotificationChannel.postMessage(JSON.stringify({
                 title: notifyTitle,
@@ -106,7 +106,20 @@ export const SocketProvider = ({ children }) => {
             }
           }
 
-          // 2. Standard HTML5 web notifications / WebView2 native events
+          // 2. Windows Desktop WebView2 JS bridge notification
+          if (window.chrome?.webview && (document.hidden || !isFromActiveChat)) {
+            try {
+              window.chrome.webview.postMessage(JSON.stringify({
+                type: 'notification',
+                title: notifyTitle,
+                body: notifyBody
+              }));
+            } catch (e) {
+              console.error('Failed to post message to WebView2:', e);
+            }
+          }
+
+          // 3. Standard HTML5 web notifications / WebView2 native events
           if (Notification.permission === 'granted' && (document.hidden || !isFromActiveChat)) {
             new Notification(notifyTitle, {
               body: notifyBody,
@@ -286,7 +299,7 @@ export const SocketProvider = ({ children }) => {
     }
   }, [isAuthenticated, user, dispatch]);
 
-  const emitTyping = (recipientId, recipientType, isTyping) => {
+  const emitTyping = ({ recipientId, recipientType = 'user', isTyping }) => {
     if (socketRef.current && user) {
       const event = isTyping ? 'typing' : 'stop-typing';
       socketRef.current.emit(event, {
