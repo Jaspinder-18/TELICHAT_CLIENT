@@ -32,7 +32,7 @@ export const ChatWindow = () => {
   const dispatch = useDispatch();
   const { emitTyping } = useSocket();
 
-  const { activeChat, activeChatType, messages, typingUsers, contacts } = useSelector((state) => state.chat);
+  const { activeChat, activeChatType, messages, typingUsers, contacts, onlineUsers } = useSelector((state) => state.chat);
   const { user } = useSelector((state) => state.auth);
   const { rightSidebarOpen } = useSelector((state) => state.ui);
 
@@ -532,7 +532,7 @@ export const ChatWindow = () => {
               </span>
             ) : (
               <span className="text-[9px] text-tg-textMuted font-medium block mt-0.5">
-                {activeChatType === 'user' ? (activeChat.isOnline ? 'Online' : 'Offline') : activeChatType === 'group' ? `${activeChat.members?.length || 0} members • Group` : `${activeChat.subscribers?.length || 0} subscribers • Channel`}
+                {activeChatType === 'user' ? ((onlineUsers[activeChat._id] !== undefined ? onlineUsers[activeChat._id] : activeChat.isOnline) ? 'Online' : 'Offline') : activeChatType === 'group' ? `${activeChat.members?.length || 0} members • Group` : `${activeChat.subscribers?.length || 0} subscribers • Channel`}
               </span>
             )}
           </div>
