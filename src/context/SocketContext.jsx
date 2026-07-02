@@ -30,6 +30,26 @@ export const SocketProvider = ({ children }) => {
   const socketRef = useRef(null);
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const { activeChat, activeChatType } = useSelector((state) => state.chat);
+  const accessToken = useSelector((state) => state.auth.accessToken);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.AuthChannel) {
+      try {
+        if (isAuthenticated && accessToken) {
+          window.AuthChannel.postMessage(JSON.stringify({
+            token: accessToken,
+            userId: user?.id || user?._id
+          }));
+        } else {
+          window.AuthChannel.postMessage(JSON.stringify({
+            token: null
+          }));
+        }
+      } catch (e) {
+        console.error('Failed to sync auth token with native wrapper:', e);
+      }
+    }
+  }, [isAuthenticated, accessToken, user]);
 
   useEffect(() => {
     if (socketRef.current && activeChat && activeChatType === 'user') {
