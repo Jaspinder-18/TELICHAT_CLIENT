@@ -154,7 +154,7 @@ const AIAssistantDrawer = ({ isOpen, onClose, activeChat, activeChatType }) => {
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed right-0 top-0 bottom-0 w-[420px] bg-tg-bgSidebarDark/95 backdrop-blur-xl border-l border-tg-borderDark text-tg-textDefault z-[9999] flex flex-col shadow-2xl"
+          className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-tg-bgSidebarDark/95 backdrop-blur-xl border-l border-tg-borderDark text-tg-textDefault z-[9999] flex flex-col shadow-2xl"
         >
           {/* Header */}
           <div className="p-4 border-b border-tg-borderDark flex items-center justify-between bg-tg-bgDark/20">
