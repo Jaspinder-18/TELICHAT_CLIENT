@@ -35,6 +35,16 @@ import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import BarChartIcon from '@mui/icons-material/BarChart';
 
+const renderUnreadBadge = (item) => {
+  if (!item || !item.unreadCount || item.unreadCount <= 0) return null;
+  const badgeText = item.unreadCount >= 4 ? '4+' : `${item.unreadCount}`;
+  return (
+    <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm flex-shrink-0">
+      {badgeText}
+    </span>
+  );
+};
+
 export const Sidebar = () => {
   const dispatch = useDispatch();
   const { joinRoom } = useSocket();
@@ -396,9 +406,12 @@ export const Sidebar = () => {
                         )}
                       </div>
                       <div className="flex-grow overflow-hidden text-left">
-                        <span className="text-xs font-semibold truncate leading-tight block">
-                          {c.firstName || c.lastName ? `${c.firstName} ${c.lastName}` : `@${c.username}`}
-                        </span>
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-semibold truncate leading-tight block">
+                            {c.firstName || c.lastName ? `${c.firstName} ${c.lastName}` : `@${c.username}`}
+                          </span>
+                          {renderUnreadBadge(c)}
+                        </div>
                         <p className={`text-[10px] truncate mt-0.5 ${activeChat?._id === c._id && activeChat?.username ? 'text-blue-100' : 'text-tg-textMuted'}`}>
                           {c.department} • {c.employeeId}
                         </p>
@@ -450,7 +463,10 @@ export const Sidebar = () => {
                         )}
                       </div>
                       <div className="flex-grow overflow-hidden text-left">
-                        <span className="text-xs font-semibold truncate block leading-tight">{g.name}</span>
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-semibold truncate block leading-tight">{g.name}</span>
+                          {renderUnreadBadge(g)}
+                        </div>
                         <p className={`text-[10px] truncate mt-0.5 ${activeChat?._id === g._id && !activeChat?.username ? 'text-indigo-100' : 'text-tg-textMuted'}`}>
                           {g.members.length} members • {g.type}
                         </p>
@@ -502,7 +518,10 @@ export const Sidebar = () => {
                         )}
                       </div>
                       <div className="flex-grow overflow-hidden text-left">
-                        <span className="text-xs font-semibold truncate block leading-tight">{c.name}</span>
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-semibold truncate block leading-tight">{c.name}</span>
+                          {renderUnreadBadge(c)}
+                        </div>
                         <p className={`text-[10px] truncate mt-0.5 ${activeChat?._id === c._id ? 'text-amber-100' : 'text-tg-textMuted'}`}>
                           {c.subscribers?.length || 0} subscribers • {c.type}
                         </p>

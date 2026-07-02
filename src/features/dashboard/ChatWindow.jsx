@@ -815,13 +815,16 @@ export const ChatWindow = () => {
                     {isSelf && (
                       <span className="text-tg-blue ml-0.5" style={{ fontSize: '10px' }}>
                         {msg.status === 'seen' ? (
-                          <CheckIcon fontSize="inherit" className="font-bold" />
+                          <span className="inline-flex items-center">
+                            <CheckIcon fontSize="inherit" className="font-bold -mr-[6px]" style={{ fontSize: '11px' }} />
+                            <CheckIcon fontSize="inherit" className="font-bold" style={{ fontSize: '11px' }} />
+                          </span>
                         ) : msg.status === 'sending' ? (
                           <span className="inline-block animate-spin w-2.5 h-2.5 border border-white/40 border-t-white rounded-full mr-0.5" />
                         ) : msg.status === 'failed' ? (
                           <span className="text-red-500 font-bold">⚠️</span>
                         ) : (
-                          <CheckIcon fontSize="inherit" className="opacity-40" />
+                          <CheckIcon fontSize="inherit" className="opacity-40" style={{ fontSize: '11px' }} />
                         )}
                       </span>
                     )}

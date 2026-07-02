@@ -59,28 +59,62 @@ const chatSlice = createSlice({
       state.activeChat = action.payload.chat;
       state.activeChatType = action.payload.type;
       state.messages = []; // Clear messages, will load via API
+      if (action.payload.chat) {
+        const chatId = action.payload.chat._id;
+        if (action.payload.type === 'user') {
+          const idx = state.contacts.findIndex(c => c._id === chatId);
+          if (idx > -1) state.contacts[idx].unreadCount = 0;
+        } else if (action.payload.type === 'group') {
+          const idx = state.myGroups.findIndex(g => g._id === chatId);
+          if (idx > -1) state.myGroups[idx].unreadCount = 0;
+        } else if (action.payload.type === 'channel') {
+          const idx = state.myChannels.findIndex(c => c._id === chatId);
+          if (idx > -1) state.myChannels[idx].unreadCount = 0;
+        }
+      }
     },
     setMessages: (state, action) => {
       state.messages = action.payload;
     },
     addMessage: (state, action) => {
       const msg = action.payload;
+      
+      // Update unread count for sidebar if this is not the active chat viewport
+      const isFromActiveChat = state.activeChat && (
+        (state.activeChatType === 'user' && (msg.sender?._id || msg.sender) === state.activeChat._id) ||
+        (state.activeChatType === 'group' && msg.recipientGroup === state.activeChat._id) ||
+        (state.activeChatType === 'channel' && msg.recipientChannel === state.activeChat._id)
+      );
+
+      if (!isFromActiveChat) {
+        const senderId = msg.sender?._id || msg.sender;
+        if (msg.recipientType === 'user') {
+          const idx = state.contacts.findIndex(c => c._id === senderId);
+          if (idx > -1) state.contacts[idx].unreadCount = (state.contacts[idx].unreadCount || 0) + 1;
+        } else if (msg.recipientType === 'group') {
+          const idx = state.myGroups.findIndex(g => g._id === msg.recipientGroup);
+          if (idx > -1) state.myGroups[idx].unreadCount = (state.myGroups[idx].unreadCount || 0) + 1;
+        } else if (msg.recipientType === 'channel') {
+          const idx = state.myChannels.findIndex(c => c._id === msg.recipientChannel);
+          if (idx > -1) state.myChannels[idx].unreadCount = (state.myChannels[idx].unreadCount || 0) + 1;
+        }
+      }
+
       // Add message if it belongs to currently active chat viewport
+      const activeChatId = state.activeChat?._id;
+      const senderId = msg.sender?._id || msg.sender;
       const matchesUser = state.activeChatType === 'user' && 
-        ((msg.sender._id === state.activeChat._id && msg.recipientUser === msg.recipientUser) || 
-         (msg.sender._id === msg.sender._id && msg.recipientUser === state.activeChat._id));
+        ((senderId === activeChatId && msg.recipientUser === msg.recipientUser) || 
+         (senderId === senderId && msg.recipientUser === activeChatId));
          
-      const matchesGroup = state.activeChatType === 'group' && msg.recipientGroup === state.activeChat._id;
-      const matchesChannel = state.activeChatType === 'channel' && msg.recipientChannel === state.activeChat._id;
+      const matchesGroup = state.activeChatType === 'group' && msg.recipientGroup === activeChatId;
+      const matchesChannel = state.activeChatType === 'channel' && msg.recipientChannel === activeChatId;
 
       if (matchesUser || matchesGroup || matchesChannel) {
-        // Prevent duplicate loads
         if (state.messages.some(m => m._id === msg._id)) {
           return;
         }
 
-        // Optimistic UI matching: If this message is sent by the current user
-        // and we have a temporary message in the list, replace it!
         const tempIdx = state.messages.findIndex(m => m.isTemp && m.content === msg.content);
         if (tempIdx > -1) {
           state.messages[tempIdx] = msg;
@@ -98,6 +132,16 @@ const chatSlice = createSlice({
           state.messages[idx] = { ...state.messages[idx], ...action.payload };
         }
       }
+    },
+    markAllActiveMessagesSeen: (state, action) => {
+      const { viewerId } = action.payload;
+      state.messages = state.messages.map(m => {
+        const senderId = m.sender?._id || m.sender;
+        if (senderId && senderId !== viewerId) {
+          return { ...m, status: 'seen' };
+        }
+        return m;
+      });
     },
     deleteMessageState: (state, action) => {
       state.messages = state.messages.filter(m => m._id !== action.payload.messageId);
@@ -174,6 +218,7 @@ export const {
   setMessages,
   addMessage,
   updateMessageState,
+  markAllActiveMessagesSeen,
   deleteMessageState,
   setStarredMessages,
   setSharedFiles,

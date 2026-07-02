@@ -3,11 +3,9 @@ import { store } from '../redux/store.js';
 import { logoutUser, updateAccessToken } from '../redux/authSlice.js';
 import { setGlobalLoading } from '../redux/uiSlice.js';
 
-let defaultBaseURL = '/api';
+let defaultBaseURL = 'https://telichat-server.onrender.com/api';
 if (typeof window !== 'undefined') {
-  if (window.location.hostname === 'telichat-client.onrender.com') {
-    defaultBaseURL = 'https://telichat-server.onrender.com/api';
-  } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     defaultBaseURL = 'http://localhost:5000/api';
   }
 }

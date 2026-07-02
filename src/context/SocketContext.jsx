@@ -6,6 +6,7 @@ import {
   updateUserOnlineStatus,
   setTypingIndicator,
   updateMessageState,
+  markAllActiveMessagesSeen,
   deleteMessageState,
   updateGroup,
   addGroup,
@@ -27,15 +28,20 @@ export const SocketProvider = ({ children }) => {
   const dispatch = useDispatch();
   const socketRef = useRef(null);
   const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { activeChat, activeChatType } = useSelector((state) => state.chat);
+
+  useEffect(() => {
+    if (socketRef.current && activeChat && activeChatType === 'user') {
+      socketRef.current.emit('mark-all-seen', { chatPartnerId: activeChat._id });
+    }
+  }, [activeChat, activeChatType]);
 
   useEffect(() => {
     if (isAuthenticated && user) {
       // Connect to WebSocket server
-      let defaultSocketUrl = window.location.origin;
+      let defaultSocketUrl = 'https://telichat-server.onrender.com';
       if (typeof window !== 'undefined') {
-        if (window.location.hostname === 'telichat-client.onrender.com') {
-          defaultSocketUrl = 'https://telichat-server.onrender.com';
-        } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
           defaultSocketUrl = 'http://localhost:5000';
         }
       }
@@ -82,10 +88,28 @@ export const SocketProvider = ({ children }) => {
         );
 
         if (message.sender._id !== (user?.id || user?._id)) {
-          // Trigger browser notification if allowed and tab is backgrounded
-          if (Notification.permission === 'granted' && document.hidden) {
-            new Notification(message.sender.firstName || `@${message.sender.username}`, {
-              body: message.type === 'file' ? '📁 Sent a file' : message.content,
+          if (isFromActiveChat && socket) {
+            socket.emit('mark-as-seen', { messageId: message._id, senderId: message.sender._id });
+          }
+          const notifyTitle = message.sender.firstName || `@${message.sender.username}`;
+          const notifyBody = message.type === 'file' ? '📁 Sent a file' : message.content;
+
+          // 1. Android APK JS bridge notification (shows on lockscreen and top banner)
+          if (window.NotificationChannel && !isFromActiveChat) {
+            try {
+              window.NotificationChannel.postMessage(JSON.stringify({
+                title: notifyTitle,
+                body: notifyBody
+              }));
+            } catch (e) {
+              console.error('Failed to post message to NotificationChannel:', e);
+            }
+          }
+
+          // 2. Standard HTML5 web notifications / WebView2 native events
+          if (Notification.permission === 'granted' && (document.hidden || !isFromActiveChat)) {
+            new Notification(notifyTitle, {
+              body: notifyBody,
               icon: message.sender.profilePhoto || '/default-avatar.png'
             });
           }
@@ -124,6 +148,14 @@ export const SocketProvider = ({ children }) => {
       socket.on('stop-typing', ({ senderId, recipientId, recipientType }) => {
         const roomKey = recipientType === 'user' ? senderId : recipientId;
         dispatch(setTypingIndicator({ chatRoomId: roomKey, userId: senderId, isTyping: false }));
+      });
+
+      socket.on('message-seen', ({ messageId, status }) => {
+        dispatch(updateMessageState({ _id: messageId, status }));
+      });
+
+      socket.on('all-messages-seen', ({ viewerId }) => {
+        dispatch(markAllActiveMessagesSeen({ viewerId }));
       });
 
       // Group update event (e.g. member joins or settings changes)
