@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
+import api from '../services/api.js';
 import {
   addMessage,
   updateUserOnlineStatus,
@@ -278,6 +279,16 @@ export const SocketProvider = ({ children }) => {
           } catch (err) {
             console.warn('[Web Push] Subscription failed:', err.message);
           }
+        }
+      };
+
+      // Expose FCM registration to native mobile wrappers
+      window.registerFCMToken = async (token) => {
+        try {
+          await api.post('/notifications/register-device', { token });
+          console.log('[FCM] Native Token registered with backend successfully');
+        } catch (err) {
+          console.error('[FCM] Native Token registration failed:', err);
         }
       };
       
