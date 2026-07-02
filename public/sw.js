@@ -21,7 +21,11 @@ self.addEventListener('push', (event) => {
     };
 
     event.waitUntil(
-      self.registration.showNotification(title, options)
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        const isClientFocused = clientList.some(client => client.focused);
+        if (isClientFocused) return;
+        return self.registration.showNotification(title, options);
+      })
     );
   } catch (err) {
     console.error('Error displaying push notification:', err);
