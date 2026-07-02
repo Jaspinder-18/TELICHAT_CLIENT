@@ -291,6 +291,11 @@ export const SocketProvider = ({ children }) => {
           console.error('[FCM] Native Token registration failed:', err);
         }
       };
+
+      // Auto-register if the native wrapper set the token before login
+      if (window.fcmToken) {
+        window.registerFCMToken(window.fcmToken);
+      }
       
       // Request notifications permission and subscribe
       if (typeof Notification !== 'undefined') {
